@@ -18,7 +18,7 @@ def _clean(text):
 def main(argv=None):
     parser = argparse.ArgumentParser(
         prog="trust-path",
-        description="List every path by which untrusted input (pull request titles, issue "
+        description="List the paths by which untrusted input (pull request titles, issue "
                     "bodies, comments, fork code) can reach a secret, an OIDC token, a write "
                     "permission, an environment or an AI agent action in the GitHub Actions "
                     "workflows under DIR/.github/workflows. Exit status: 0 no path, 1 paths "

@@ -338,12 +338,14 @@ class Repo(object):
             passed = frozenset(secrets)
         else:
             passed = frozenset()
+        perms = job["permissions"] if "permissions" in job else self.workflows[rel].get(
+            "permissions", ctx.caller_permissions)
         if not uses.startswith("./"):
             # A workflow in another repository: report what is handed to it.
             if tainted:
                 sinks = ["secrets:inherit"] if secrets == "inherit" else sorted(
                     secret_names(secrets))
-                sinks += sorted(_permissions(job.get("permissions")))
+                sinks += sorted(_permissions(perms))
                 for name in sorted(tainted):
                     for sink in sinks:
                         records.add(Record("%s:%s" % (ctx.chain, "with." + name), rel, job_id,
@@ -355,8 +357,6 @@ class Repo(object):
                 rel, job_id, uses, ".github/workflows"))
         if target in stack:
             return
-        perms = job["permissions"] if "permissions" in job else self.workflows[rel].get(
-            "permissions", ctx.caller_permissions)
         inner = Context("%s@%s>workflow_call" % (ctx.chain, rel), ctx.trigger, tainted,
                         passed, perms)
         self._workflow(target, inner, records, stack + (rel,))
