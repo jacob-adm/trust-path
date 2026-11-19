@@ -1,0 +1,5 @@
+# SPDX-License-Identifier: Apache-2.0
+# The sdist carries the test suite and everything it reads, so the tests run from it.
+graft tests
+graft .github/workflows
+prune tests/__pycache__

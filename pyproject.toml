@@ -1,6 +1,6 @@
 # SPDX-License-Identifier: Apache-2.0
 [build-system]
-requires = ["setuptools>=61"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [project]
@@ -8,8 +8,9 @@ name = "trust-path"
 version = "0.1.0"
 description = "List the paths by which untrusted input can reach secrets and publishing credentials in GitHub Actions workflows."
 readme = "README.md"
-requires-python = ">=3.8"
-license = {text = "Apache-2.0"}
+requires-python = ">=3.9"
+license = "Apache-2.0"
+license-files = ["LICENSE"]
 dependencies = []
 keywords = ["github-actions", "security", "secrets", "ci", "supply-chain", "cli"]
 classifiers = [
