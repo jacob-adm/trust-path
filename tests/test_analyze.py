@@ -1,0 +1,352 @@
+import os
+import shutil
+import tempfile
+import textwrap
+import unittest
+
+from trust_path.analyze import AnalysisError, Repo
+
+
+def analyse(**workflows):
+    """Analyse a repository made of the given name=text workflow files and
+    return its records as (source, workflow, job, step, sink) tuples."""
+    tmp = tempfile.mkdtemp()
+    try:
+        wdir = os.path.join(tmp, ".github", "workflows")
+        os.makedirs(wdir)
+        for name, text in workflows.items():
+            with open(os.path.join(wdir, name + ".yml"), "w") as f:
+                f.write(textwrap.dedent(text))
+        return [tuple(r) for r in Repo(tmp).analyse()]
+    finally:
+        shutil.rmtree(tmp)
+
+
+def sinks(recs):
+    return sorted(set(r[4] for r in recs))
+
+
+class SourceTests(unittest.TestCase):
+    def test_pull_request_fields_only_under_pull_request_target(self):
+        wf = """
+            on: [%s]
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ github.event.pull_request.body }}"
+                    env:
+                      T: ${{ secrets.T }}
+            """
+        self.assertEqual(len(analyse(w=wf % "pull_request_target")), 1)
+        for trigger in ("pull_request", "pull_request_review", "push", "workflow_dispatch"):
+            self.assertEqual(analyse(w=wf % trigger), [], trigger)
+
+    def test_review_body_counts_under_review_trigger(self):
+        recs = analyse(w="""
+            on: pull_request_review
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ github.event.review.body }}"
+                    env:
+                      T: ${{ secrets.T }}
+            """)
+        self.assertEqual(recs[0][0], "pull_request_review:github.event.review.body")
+
+    def test_whole_event_and_index_forms(self):
+        recs = analyse(w="""
+            on: issue_comment
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo '${{ toJSON(github.event) }}' "${{ github['event']['comment']['body'] }}"
+                    env:
+                      T: ${{ secrets.T }}
+            """)
+        self.assertEqual(sorted(r[0] for r in recs), [
+            "issue_comment:github.event", "issue_comment:github.event.comment.body"])
+
+    def test_string_literal_is_not_a_context(self):
+        recs = analyse(w="""
+            on: issues
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ format('github.event.issue.title') }}"
+                    env:
+                      T: ${{ secrets.T }}
+            """)
+        self.assertEqual(recs, [])
+
+    def test_job_env_enters_at_first_step(self):
+        recs = analyse(w="""
+            on: issues
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                env:
+                  TITLE: ${{ github.event.issue.title }}
+                steps:
+                  - name: first
+                    run: true
+                  - name: second
+                    run: ./x
+                    env:
+                      T: ${{ secrets.T }}
+            """)
+        self.assertEqual([(r[0], r[3], r[4]) for r in recs],
+                         [("issues:github.event.issue.title", "second", "secrets.T")])
+
+    def test_secret_before_entry_is_not_reached(self):
+        recs = analyse(w="""
+            on: pull_request_target
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: ./setup
+                    env:
+                      EARLY: ${{ secrets.EARLY }}
+                  - run: gh pr checkout ${{ github.event.pull_request.number }}
+                  - run: make
+                    env:
+                      LATE: ${{ secrets.LATE }}
+            """)
+        self.assertEqual([(r[0], r[4]) for r in recs],
+                         [("pull_request_target:fetch of pull request head", "secrets.LATE")])
+
+    def test_other_jobs_are_not_reached(self):
+        recs = analyse(w="""
+            on: issues
+            permissions: {}
+            jobs:
+              a:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ github.event.issue.title }}"
+              b:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: ./x
+                    env:
+                      T: ${{ secrets.T }}
+            """)
+        self.assertEqual(recs, [])
+
+
+class SinkTests(unittest.TestCase):
+    STEP = """
+            on: issues
+            %s
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                %s
+                steps:
+                  - run: echo "${{ github.event.issue.title }}"
+            """
+
+    def test_unset_permissions_are_the_default_token(self):
+        self.assertEqual(sinks(analyse(w=self.STEP % ("", ""))), ["permissions:default"])
+
+    def test_empty_and_read_permissions_are_not_sinks(self):
+        self.assertEqual(analyse(w=self.STEP % ("permissions: {}", "")), [])
+        self.assertEqual(analyse(w=self.STEP % ("permissions: read-all", "")), [])
+
+    def test_job_permissions_replace_workflow_permissions(self):
+        recs = analyse(w=self.STEP % ("permissions: write-all", "permissions: {contents: write}"))
+        self.assertEqual(sinks(recs), ["permissions.contents:write"])
+
+    def test_write_all(self):
+        self.assertEqual(sinks(analyse(w=self.STEP % ("permissions: write-all", ""))), [
+            "permissions.actions:write", "permissions.contents:write",
+            "permissions.id-token:write", "permissions.packages:write",
+            "permissions.pull-requests:write"])
+
+    def test_environment_mapping(self):
+        recs = analyse(w=self.STEP % ("permissions: {}", "environment: {name: prod, url: x}"))
+        self.assertEqual(sinks(recs), ["environment:prod"])
+
+    def test_all_secrets(self):
+        recs = analyse(w=self.STEP % ("permissions: {}", "env:\n                  S: ${{ toJSON(secrets) }}"))
+        self.assertEqual(sinks(recs), ["secrets.*"])
+
+    def test_agent_without_credential_is_not_an_agent_sink(self):
+        recs = analyse(w="""
+            on: issues
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - uses: actions/ai-inference@v1
+                    with:
+                      prompt: ${{ github.event.issue.body }}
+            """)
+        self.assertEqual(recs, [])
+
+    def test_agent_with_oidc_token(self):
+        recs = analyse(w="""
+            on: issue_comment
+            permissions:
+              id-token: write
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - uses: google-github-actions/run-gemini-cli@v0
+            """)
+        self.assertEqual(recs, [
+            ("issue_comment:event text read by agent", ".github/workflows/w.yml", "j",
+             "google-github-actions/run-gemini-cli@v0", "agent:google-github-actions/run-gemini-cli"),
+            ("issue_comment:event text read by agent", ".github/workflows/w.yml", "j",
+             "google-github-actions/run-gemini-cli@v0", "permissions.id-token:write"),
+        ])
+
+
+class CrossWorkflowTests(unittest.TestCase):
+    DOWNSTREAM = """
+        on:
+          workflow_run:
+            workflows: [%s]
+        permissions: {}
+        jobs:
+          deploy:
+            runs-on: ubuntu-latest
+            steps:
+              - uses: actions/download-artifact@v4
+                with:
+                  run-id: ${{ github.event.workflow_run.id }}
+              - run: ./deploy
+                env:
+                  KEY: ${{ secrets.KEY }}
+        """
+
+    def test_artifact_from_pull_request_run(self):
+        recs = analyse(up="name: Build\non: pull_request\njobs: {}\n",
+                       down=self.DOWNSTREAM % "Build")
+        self.assertEqual([r[0] for r in recs], [
+            "pull_request@.github/workflows/up.yml>workflow_run:artifact from upstream run"])
+
+    def test_trusted_upstream(self):
+        recs = analyse(up="name: Build\non: push\njobs: {}\n", down=self.DOWNSTREAM % "Build")
+        self.assertEqual(recs, [])
+
+    def test_unknown_upstream_is_reported(self):
+        recs = analyse(down=self.DOWNSTREAM % "Elsewhere")
+        self.assertEqual([r[0] for r in recs],
+                         ["unknown@Elsewhere>workflow_run:artifact from upstream run"])
+
+    def test_workflow_run_cycle_terminates(self):
+        wf = """
+            name: %s
+            on:
+              workflow_run:
+                workflows: [%s]
+            permissions: {}
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ github.event.workflow_run.head_branch }}"
+                    env:
+                      T: ${{ secrets.T }}
+            """
+        self.assertEqual(analyse(a=wf % ("A", "B"), b=wf % ("B", "A")), [])
+
+    def test_secrets_inherit_and_caller_permissions(self):
+        recs = analyse(caller="""
+            on: pull_request_target
+            jobs:
+              call:
+                permissions:
+                  contents: write
+                uses: ./.github/workflows/callee.yml
+                secrets: inherit
+            """, callee="""
+            on: workflow_call
+            jobs:
+              build:
+                runs-on: ubuntu-latest
+                steps:
+                  - uses: actions/checkout@v4
+                    with:
+                      ref: refs/pull/${{ github.event.number }}/merge
+                  - run: make
+                    env:
+                      ANY: ${{ secrets.ANY }}
+            """)
+        self.assertEqual(sorted(set((r[0], r[1], r[4]) for r in recs)), [
+            ("pull_request_target@.github/workflows/caller.yml>workflow_call:"
+             "checkout of pull request head", ".github/workflows/callee.yml",
+             "permissions.contents:write"),
+            ("pull_request_target@.github/workflows/caller.yml>workflow_call:"
+             "checkout of pull request head", ".github/workflows/callee.yml", "secrets.ANY"),
+        ])
+
+    def test_secret_not_passed_is_not_held(self):
+        recs = analyse(caller="""
+            on: issues
+            permissions: {}
+            jobs:
+              call:
+                uses: ./.github/workflows/callee.yml
+                with:
+                  t: ${{ github.event.issue.title }}
+            """, callee="""
+            on:
+              workflow_call:
+                inputs:
+                  t:
+                    type: string
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ inputs.t }}"
+                    env:
+                      S: ${{ secrets.S }}
+            """)
+        self.assertEqual(recs, [])
+
+    def test_remote_reusable_workflow(self):
+        recs = analyse(caller="""
+            on: issues
+            jobs:
+              call:
+                permissions: {}
+                uses: example/shared/.github/workflows/x.yml@v1
+                with:
+                  title: ${{ github.event.issue.title }}
+                secrets:
+                  token: ${{ secrets.TOKEN }}
+            """)
+        self.assertEqual(recs, [(
+            "issues:with.title", ".github/workflows/caller.yml", "call",
+            "example/shared/.github/workflows/x.yml@v1", "secrets.TOKEN")])
+
+
+class ErrorTests(unittest.TestCase):
+    def test_not_a_workflow(self):
+        with self.assertRaises(AnalysisError):
+            analyse(w="on: push\n")
+
+    def test_yaml_error_names_file_and_line(self):
+        with self.assertRaises(AnalysisError) as cm:
+            analyse(w="on: push\njobs:\n  a: !!map {}\n")
+        self.assertEqual(str(cm.exception),
+                         ".github/workflows/w.yml:3: anchors, aliases and tags are not supported")
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,0 +1,16 @@
+name: Publish
+on:
+  workflow_run:
+    workflows: ["Stage"]
+    types: [completed]
+permissions: {}
+jobs:
+  publish:
+    runs-on: ubuntu-latest
+    environment: pypi
+    permissions:
+      id-token: write
+    steps:
+      - name: Tag
+        run: git tag "release-${{ github.event.workflow_run.head_branch }}"
+      - uses: pypa/gh-action-pypi-publish@release/v1

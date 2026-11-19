@@ -1,0 +1,11 @@
+name: Stage
+on:
+  workflow_run:
+    workflows: [CI]
+    types: [completed]
+permissions: {}
+jobs:
+  note:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "staged ${{ github.event.workflow_run.head_branch }}"

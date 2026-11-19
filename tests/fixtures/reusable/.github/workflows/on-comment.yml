@@ -1,0 +1,12 @@
+name: on comment
+on: issue_comment
+jobs:
+  reply:
+    permissions:
+      pull-requests: write
+    uses: ./.github/workflows/reply.yml
+    with:
+      text: ${{ github.event.comment.body }}
+      number: ${{ github.event.issue.number }}
+    secrets:
+      token: ${{ secrets.REPLY_TOKEN }}

@@ -1,0 +1,16 @@
+name: triage
+on:
+  issues:
+    types: [opened]
+permissions:
+  issues: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: |
+            Label this issue:
+            ${{ github.event.issue.body }}
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

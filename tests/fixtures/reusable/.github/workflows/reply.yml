@@ -1,0 +1,21 @@
+name: reply
+on:
+  workflow_call:
+    inputs:
+      text:
+        type: string
+      number:
+        type: string
+    secrets:
+      token:
+        required: true
+jobs:
+  reply:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Number only
+        run: echo "${{ inputs.number }}"
+      - name: Reply
+        run: ./reply.sh "${{ inputs.text }}"
+        env:
+          TOKEN: ${{ secrets.token }}
