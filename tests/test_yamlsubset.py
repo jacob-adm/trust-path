@@ -106,6 +106,54 @@ class SupportedTests(unittest.TestCase):
         self.assertEqual(y("a:\n  - |\n      x\n       y\n"), {"a": ["x\n y\n"]})
 
 
+class SpecTests(unittest.TestCase):
+    """Expected values from the examples in the YAML 1.2.2 specification."""
+
+    def test_escaped_line_breaks(self):
+        # Example 7.5, double-quoted line breaks.
+        self.assertEqual(load('a: "folded \nto a space,\t\n \nto a line feed, or \t\\\n'
+                              ' \\ \tnon-content"\n'),
+                         {"a": "folded to a space,\nto a line feed, or \t \tnon-content"})
+        # Example 7.6, double-quoted lines.
+        self.assertEqual(load('a: " 1st non-empty\n\n 2nd non-empty \n\t3rd non-empty "\n'),
+                         {"a": " 1st non-empty\n2nd non-empty 3rd non-empty "})
+        self.assertEqual(load('a: "x\\\n\n  y"\n'), {"a": "x\ny"})
+        self.assertEqual(load('a: "x\\\\\n  y"\n'), {"a": "x\\ y"})
+        self.assertEqual(load('a: "x\\ \n  y"\n'), {"a": "x  y"})
+
+    def test_block_indentation_indicators(self):
+        # Example 8.1, block scalar header.
+        self.assertEqual(load("- | # Empty header\n literal\n- >1 # Indentation indicator\n"
+                              "  folded\n- |+ # Chomping indicator\n keep\n\n"
+                              "- >1- # Both indicators\n  strip\n"),
+                         ["literal\n", " folded\n", "keep\n\n", " strip"])
+        # Example 8.2, block indentation indicator (without its tab item).
+        self.assertEqual(load("- |\n detected\n- >\n \n  \n  # detected\n- |1\n  explicit\n"),
+                         ["detected\n", "\n\n# detected\n", " explicit\n"])
+        self.assertEqual(load("a:\n  b: |2-\n     x\n    y\n\n  c: >-2\n     z\n"),
+                         {"a": {"b": " x\ny", "c": " z"}})
+        self.assertEqual(load("a: |2+\n\n   x\n\nb: 1\n"), {"a": "\n x\n\n", "b": "1"})
+        self.assertEqual(load("- a: |1\n    x\n"), [{"a": " x\n"}])
+
+    def test_chomping_final_line_break(self):
+        # Example 8.4.
+        self.assertEqual(load("strip: |-\n  text\nclip: |\n  text\nkeep: |+\n  text\n"),
+                         {"strip": "text", "clip": "text\n", "keep": "text\n"})
+        # Example 8.6, empty scalar chomping.
+        self.assertEqual(load("strip: >-\n\nclip: >\n\nkeep: |+\n\n"),
+                         {"strip": "", "clip": "", "keep": "\n"})
+
+    def test_block_at_end_of_file_without_line_break(self):
+        # The final line has no line break, so clip and keep add none.
+        self.assertEqual(load("a: |\n  x"), {"a": "x"})
+        self.assertEqual(load("a: >\n  x\n  y"), {"a": "x y"})
+        self.assertEqual(load("a: |+\n  x"), {"a": "x"})
+        self.assertEqual(load("a: |+\n  x\n\n"), {"a": "x\n\n"})
+        self.assertEqual(load("a: |+\n  x\n\n  "), {"a": "x\n\n"})
+        self.assertEqual(load("a: |-\n  x"), {"a": "x"})
+        self.assertEqual(load("a: |\n  x\n\n"), {"a": "x\n"})
+
+
 class RefusedTests(unittest.TestCase):
     def refused(self, text, line, message):
         with self.assertRaises(YamlError) as cm:
@@ -132,7 +180,8 @@ class RefusedTests(unittest.TestCase):
         self.refused("a: |\n\tx\n", 2, "tabs in indentation are not supported")
         self.refused("a: |\n  x\n \ty\n", 3, "tabs in indentation are not supported")
         self.refused("a: 1\na: 2\n", 2, "duplicate key 'a'")
-        self.refused("a: |2\n  x\n", 1, "block scalar header '|2' is not supported")
+        self.refused("a: |0\n  x\n", 1, "block scalar header '|0' is not supported")
+        self.refused("a: |2\n x\n", 2, "block scalar line is less indented than the first")
 
     def test_deep_nesting(self):
         self.refused("a: " + "[" * 3000 + "]" * 3000 + "\n", 1, "nesting is too deep")
