@@ -86,6 +86,21 @@ class SupportedTests(unittest.TestCase):
     def test_document_markers(self):
         self.assertEqual(y("---\na: 1\n...\n"), {"a": "1"})
 
+    def test_encodings_and_line_ends(self):
+        self.assertEqual(load("\ufeffa: b\n"), {"a": "b"})
+        self.assertEqual(load("a: |\r\n  x\r\n  y\r\nb: c\r\n"), {"a": "x\ny\n", "b": "c"})
+        self.assertEqual(load("a: b\rc: d\r"), {"a": "b", "c": "d"})
+        self.assertEqual(load("\u043a\u043b\u044e\u0447: \u5024\n\"\u00e9\": ok\n"),
+                         {"\u043a\u043b\u044e\u0447": "\u5024", "\u00e9": "ok"})
+
+    def test_long_line(self):
+        self.assertEqual(load("a: " + "x" * 1000000 + "\n"), {"a": "x" * 1000000})
+
+    def test_block_scalar_indentation(self):
+        self.assertEqual(y("a: >\n  x\n    y\n  z\n"), {"a": "x\n  y\nz\n"})
+        self.assertEqual(y("a: |\n\n  x\n"), {"a": "\nx\n"})
+        self.assertEqual(y("a:\n  - |\n      x\n       y\n"), {"a": ["x\n y\n"]})
+
 
 class RefusedTests(unittest.TestCase):
     def refused(self, text, line, message):
@@ -99,6 +114,10 @@ class RefusedTests(unittest.TestCase):
         self.refused("a: 1\nb: *x\n", 2, msg)
         self.refused("a: !!str 1\n", 1, msg)
         self.refused("a:\n  - *x\n", 2, msg)
+        self.refused("- &x a\n", 1, msg)
+        self.refused("a: &x\n  b: c\n", 1, msg)
+        self.refused("a: [&x b, *x]\n", 1, "anchors, aliases, tags and complex keys are not supported")
+        self.refused("&x a: b\n", 1, msg)
 
     def test_other_constructs(self):
         self.refused("a: 1\n<<: {b: 2}\n", 2, "merge keys are not supported")
@@ -112,6 +131,8 @@ class RefusedTests(unittest.TestCase):
     def test_malformed(self):
         self.refused("a: [1, 2\n", 1, "unterminated flow collection")
         self.refused("a: 'x\n", 1, "unterminated quoted string")
+        self.refused("a:\n  b: |\n      deep\n    shallow\n", 4,
+                     "block scalar line is less indented than the first")
         self.refused("a: 1\n   b: 2\n", 2, "unexpected indentation")
 
 
