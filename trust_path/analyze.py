@@ -184,15 +184,31 @@ def _label(step, index):
     return "step %d" % (index + 1)
 
 
+def _check(doc):
+    """Refuse a document that is not a workflow this module can walk."""
+    if not isinstance(doc, dict) or not isinstance(doc.get("jobs"), dict):
+        raise AnalysisError("not a workflow (no 'jobs' mapping)")
+    for job_id, job in sorted(doc["jobs"].items()):
+        if not isinstance(job, dict):
+            raise AnalysisError("job %r is not a mapping" % job_id)
+        if not isinstance(job.get("steps") or [], list):
+            raise AnalysisError("steps of job %r are not a list" % job_id)
+    return doc
+
+
 Context = collections.namedtuple(
     "Context", "chain trigger tainted_inputs secrets_allowed caller_permissions")
 
 
 class Repo(object):
+    """The readable workflows of a repository. Files that cannot be read are
+    listed in `refused` as sorted (file, reason) pairs and left out."""
+
     def __init__(self, root):
         self.root = root
         wdir = os.path.join(root, ".github", "workflows")
         self.workflows = {}
+        refused = {}
         if not os.path.isdir(root):
             raise AnalysisError("%s: not a directory" % root)
         names = sorted(os.listdir(wdir)) if os.path.isdir(wdir) else []
@@ -200,17 +216,28 @@ class Repo(object):
             if not name.endswith((".yml", ".yaml")):
                 continue
             rel = ".github/workflows/" + name
-            path = os.path.join(wdir, name)
             try:
-                with open(path, encoding="utf-8") as f:
-                    doc = yamlsubset.load(f.read())
+                with open(os.path.join(wdir, name), encoding="utf-8") as f:
+                    self.workflows[rel] = _check(yamlsubset.load(f.read()))
             except yamlsubset.YamlError as e:
-                raise AnalysisError("%s:%d: %s" % (rel, e.line, e.message))
+                refused[rel] = "line %d: %s" % (e.line, e.message)
+            except AnalysisError as e:
+                refused[rel] = str(e)
             except (OSError, UnicodeDecodeError) as e:
-                raise AnalysisError("%s: %s" % (rel, e))
-            if not isinstance(doc, dict) or not isinstance(doc.get("jobs"), dict):
-                raise AnalysisError("%s: not a workflow (no 'jobs' mapping)" % rel)
-            self.workflows[rel] = doc
+                refused[rel] = str(e)
+        # A call to a local reusable workflow that does not exist refuses the
+        # caller; a call to one that was refused is skipped when analysing.
+        for rel in sorted(self.workflows):
+            for job_id, job in sorted(self.workflows[rel]["jobs"].items()):
+                uses = job.get("uses")
+                if isinstance(uses, str) and uses.startswith("./"):
+                    target = uses[2:].split("@")[0]
+                    if target not in self.workflows and target not in refused:
+                        refused[rel] = "job %r calls %s, which is not in %s" % (
+                            job_id, uses, ".github/workflows")
+        for rel in refused:
+            self.workflows.pop(rel, None)
+        self.refused = sorted(refused.items())
 
     def name_of(self, rel):
         name = self.workflows[rel].get("name")
@@ -257,18 +284,13 @@ class Repo(object):
         wf = self.workflows[rel]
         for job_id in sorted(wf["jobs"]):
             job = wf["jobs"][job_id]
-            if not isinstance(job, dict):
-                raise AnalysisError("%s: job %r is not a mapping" % (rel, job_id))
             if isinstance(job.get("uses"), str):
                 self._call(rel, job_id, job, ctx, records, stack)
             else:
                 self._job(rel, wf, job_id, job, ctx, records)
 
     def _job(self, rel, wf, job_id, job, ctx, records):
-        steps = job.get("steps") or []
-        if not isinstance(steps, list):
-            raise AnalysisError("%s: steps of job %r are not a list" % (rel, job_id))
-        steps = [s if isinstance(s, dict) else {} for s in steps]
+        steps = [s if isinstance(s, dict) else {} for s in job.get("steps") or []]
         shared_env = [wf.get("env"), job.get("env")]
 
         def allowed(names):
@@ -352,10 +374,7 @@ class Repo(object):
                                            uses, sink))
             return
         target = uses[2:].split("@")[0]
-        if target not in self.workflows:
-            raise AnalysisError("%s: job %r calls %s, which is not in %s" % (
-                rel, job_id, uses, ".github/workflows"))
-        if target in stack:
+        if target not in self.workflows or target in stack:
             return
         inner = Context("%s@%s>workflow_call" % (ctx.chain, rel), ctx.trigger, tainted,
                         passed, perms)

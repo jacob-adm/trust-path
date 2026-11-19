@@ -336,17 +336,72 @@ class CrossWorkflowTests(unittest.TestCase):
             "example/shared/.github/workflows/x.yml@v1", "secrets.TOKEN")])
 
 
+def refused(**workflows):
+    """The (file, reason) pairs Repo refuses among the given workflows."""
+    tmp = tempfile.mkdtemp()
+    try:
+        wdir = os.path.join(tmp, ".github", "workflows")
+        os.makedirs(wdir)
+        for name, text in workflows.items():
+            with open(os.path.join(wdir, name + ".yml"), "w") as f:
+                f.write(textwrap.dedent(text))
+        return Repo(tmp).refused
+    finally:
+        shutil.rmtree(tmp)
+
+
 class ErrorTests(unittest.TestCase):
-    def test_not_a_workflow(self):
+    def test_not_a_directory(self):
         with self.assertRaises(AnalysisError):
-            analyse(w="on: push\n")
+            Repo(os.path.join(os.path.dirname(__file__), "no-such-dir"))
+
+    def test_not_a_workflow(self):
+        self.assertEqual(refused(w="on: push\n"),
+                         [(".github/workflows/w.yml", "not a workflow (no 'jobs' mapping)")])
 
     def test_yaml_error_names_file_and_line(self):
-        with self.assertRaises(AnalysisError) as cm:
-            analyse(w="on: push\njobs:\n  a: !!map {}\n")
-        self.assertEqual(str(cm.exception),
-                         ".github/workflows/w.yml:3: anchors, aliases and tags are not supported")
+        self.assertEqual(refused(w="on: push\njobs:\n  a: !!map {}\n"), [(
+            ".github/workflows/w.yml", "line 3: anchors, aliases and tags are not supported")])
 
+    def test_readable_files_are_still_analysed(self):
+        good = """
+            on: issues
+            jobs:
+              a:
+                steps:
+                  - run: echo "${{ github.event.issue.title }}" ${{ secrets.T }}
+        """
+        recs = analyse(bad="on: [\n", good=good)
+        self.assertEqual(sinks(recs), ["permissions:default", "secrets.T"])
+
+    def test_malformed_jobs_and_steps_are_refused(self):
+        self.assertEqual(refused(j="on: push\njobs:\n  a: x\n",
+                                 s="on: push\njobs:\n  a:\n    steps: x\n"), [
+            (".github/workflows/j.yml", "job 'a' is not a mapping"),
+            (".github/workflows/s.yml", "steps of job 'a' are not a list")])
+
+    def test_missing_call_refuses_caller_only(self):
+        call = """
+            on: issues
+            jobs:
+              c:
+                uses: ./.github/workflows/gone.yml
+        """
+        self.assertEqual(refused(call=call, ok="on: push\njobs: {}\n"), [(
+            ".github/workflows/call.yml",
+            "job 'c' calls ./.github/workflows/gone.yml, which is not in .github/workflows")])
+
+    def test_call_into_refused_workflow_is_skipped(self):
+        call = """
+            on: issues
+            jobs:
+              c:
+                uses: ./.github/workflows/bad.yml
+              d:
+                steps:
+                  - run: echo "${{ github.event.issue.body }}"
+        """
+        self.assertEqual(sinks(analyse(call=call, bad="on: [\n")), ["permissions:default"])
 
 if __name__ == "__main__":
     unittest.main()
