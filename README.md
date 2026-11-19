@@ -21,9 +21,9 @@ sinks. See [Other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/
 
 ## Requirements
 
-- Python 3.8 or later, standard library only.
-- Written for Linux, macOS and Windows. The tests have been run on macOS with Python 3.8 and
-  3.14; `.github/workflows/test.yml` runs them on all three systems with Python 3.8 and 3.13
+- Python 3.9 or later, standard library only.
+- Written for Linux, macOS and Windows. The tests have been run on macOS with Python 3.9 and
+  3.14; `.github/workflows/test.yml` runs them on all three systems with Python 3.9 and 3.13
   where GitHub Actions is enabled.
 
 ## Install

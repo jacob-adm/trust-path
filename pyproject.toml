@@ -8,7 +8,7 @@ name = "trust-path"
 version = "0.1.0"
 description = "List the paths by which untrusted input can reach secrets and publishing credentials in GitHub Actions workflows."
 readme = "README.md"
-requires-python = ">=3.8"
+requires-python = ">=3.9"
 license = "Apache-2.0"
 license-files = ["LICENSE"]
 dependencies = []
