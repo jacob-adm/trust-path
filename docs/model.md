@@ -1,7 +1,9 @@
 # How trust-path finds paths
 
-trust-path reads every `*.yml` and `*.yaml` file directly in `DIR/.github/workflows`. It does not
-run anything, contact GitHub or read files outside that directory.
+trust-path reads every `*.yml` and `*.yaml` file directly in `DIR/.github/workflows`, or with
+`--ref REF` the same files as they are in git at `REF`. It does not run anything (except git, with
+`--ref`), contact GitHub or read files outside that directory. Local reusable workflows are read
+from the same place: with `--ref`, at `REF`.
 
 ## Runs that carry untrusted input
 

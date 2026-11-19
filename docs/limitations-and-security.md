@@ -3,7 +3,12 @@
 ## What trust-path reads and does
 
 - It reads the files directly in `DIR/.github/workflows`, and nothing else. It does not run
-  workflows, actions or git, does not contact GitHub, and writes nothing but its output.
+  workflows or actions, does not contact GitHub, and writes nothing but its output.
+- It runs git only with `--ref REF`: `git rev-parse` to check that `DIR` is a repository and `REF`
+  names a commit, `git ls-tree` to list `.github/workflows` at that commit and `git cat-file` to
+  read each file. git is started without a shell, with `LC_ALL=C`, in `DIR`; nothing is checked
+  out and the working tree is not read or changed. git's own configuration for that repository
+  still applies to these commands.
 - It reports. It does not change workflows, block merges or decide whether a path is exploitable.
   A record means untrusted input can reach the sink under the rules in
   [How trust-path finds paths](model.md); whether that is a problem depends on what the steps do.

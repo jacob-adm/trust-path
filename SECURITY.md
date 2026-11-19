@@ -1,8 +1,10 @@
 # Security
 
 `trust-path` reads only the files directly in `DIR/.github/workflows`, with its own YAML reader
-that refuses anything outside the subset workflows use. It never runs workflows, actions or git,
-does not contact GitHub, and writes nothing but its output. See
+that refuses anything outside the subset workflows use. It never runs workflows or actions, does
+not contact GitHub, and writes nothing but its output. It runs git only when given `--ref`, and
+then only `git rev-parse`, `git ls-tree` and `git cat-file` in `DIR`, without a shell and without
+checking anything out. See
 [Limitations and security](docs/limitations-and-security.md).
 
 ## Reporting a vulnerability

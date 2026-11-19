@@ -7,6 +7,7 @@ docs/model.md for the rules this module implements.
 import collections
 import os
 import re
+import subprocess
 
 from . import yamlsubset
 
@@ -204,25 +205,83 @@ Context = collections.namedtuple(
     "Context", "chain trigger tainted_inputs secrets_allowed caller_permissions")
 
 
-class Repo(object):
-    """The readable workflows of a repository. Files that cannot be read are
-    listed in `refused` as sorted (file, reason) pairs and left out."""
+def _git(root, *args):
+    """Run git in root without a shell and return its standard output."""
+    try:
+        p = subprocess.run(["git"] + list(args), cwd=root, stdout=subprocess.PIPE,
+                           stderr=subprocess.PIPE, env=dict(os.environ, LC_ALL="C"))
+    except OSError as e:
+        raise AnalysisError("cannot run git: %s" % e)
+    if p.returncode:
+        message = p.stderr.decode("utf-8", "replace").strip().splitlines()
+        raise AnalysisError(message[-1] if message else "git %s failed" % args[0])
+    return p.stdout
 
-    def __init__(self, root):
+
+def _git_reader(root, ref):
+    """name -> function returning the text of each file directly in
+    .github/workflows at ref, read from git without a checkout."""
+    try:
+        _git(root, "rev-parse", "--git-dir")
+    except AnalysisError:
+        raise AnalysisError("%s: not a git repository" % root)
+    try:
+        if ref.startswith("-"):
+            raise AnalysisError(ref)
+        commit = _git(root, "rev-parse", "--verify", "--quiet", ref + "^{commit}")
+    except AnalysisError:
+        raise AnalysisError("unknown ref %s" % ref)
+    listing = _git(root, "ls-tree", "-z", "--full-tree", commit.decode().strip(), "--",
+                   ".github/workflows/")
+    files = {}
+    for entry in listing.split(b"\0"):
+        if not entry:
+            continue
+        meta, path = entry.split(b"\t", 1)
+        mode, kind, oid = meta.decode().split(" ")
+        name = path.decode("utf-8", "replace").split("/")[-1]
+        if kind != "blob":
+            continue
+        if mode == "120000":
+            files[name] = None
+        else:
+            files[name] = lambda oid=oid: _git(root, "cat-file", "blob", oid).decode("utf-8")
+    return files
+
+
+def _dir_reader(root):
+    """name -> function returning the text of each file directly in
+    DIR/.github/workflows."""
+    if not os.path.isdir(root):
+        raise AnalysisError("%s: not a directory" % root)
+    wdir = os.path.join(root, ".github", "workflows")
+
+    def read(name):
+        with open(os.path.join(wdir, name), encoding="utf-8") as f:
+            return f.read()
+    names = os.listdir(wdir) if os.path.isdir(wdir) else []
+    return dict((name, lambda name=name: read(name)) for name in names)
+
+
+class Repo(object):
+    """The readable workflows of a repository, from the directory or, with
+    `ref`, from git at that ref. Files that cannot be read are listed in
+    `refused` as sorted (file, reason) pairs and left out."""
+
+    def __init__(self, root, ref=None):
         self.root = root
-        wdir = os.path.join(root, ".github", "workflows")
         self.workflows = {}
         refused = {}
-        if not os.path.isdir(root):
-            raise AnalysisError("%s: not a directory" % root)
-        names = sorted(os.listdir(wdir)) if os.path.isdir(wdir) else []
-        for name in names:
+        files = _dir_reader(root) if ref is None else _git_reader(root, ref)
+        for name in sorted(files):
             if not name.endswith((".yml", ".yaml")):
                 continue
             rel = ".github/workflows/" + name
+            if files[name] is None:
+                refused[rel] = "a symbolic link, not read"
+                continue
             try:
-                with open(os.path.join(wdir, name), encoding="utf-8") as f:
-                    self.workflows[rel] = _check(yamlsubset.load(f.read()))
+                self.workflows[rel] = _check(yamlsubset.load(files[name]()))
             except yamlsubset.YamlError as e:
                 refused[rel] = "line %d: %s" % (e.line, e.message)
             except AnalysisError as e:
