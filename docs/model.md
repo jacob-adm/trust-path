@@ -78,7 +78,7 @@ sequences, plain and quoted scalars (also over several lines), `|` and `>` block
 or `+`, flow collections such as `[a, b]` and `{a: b}`, comments and a leading `---`. Every value is
 read as text.
 
-It refuses, with exit status 2 and the file and line, anchors (`&`), aliases (`*`), tags (`!`),
+It refuses a file, naming it and the line (exit status 2; the other files are still read), that has anchors (`&`), aliases (`*`), tags (`!`),
 merge keys (`<<`), complex keys (`?`), directives (`%`), several documents in one file, tabs in
 indentation, duplicate keys, block scalar indentation indicators (`|2`), nesting too deep to read (about a thousand levels) and flow mapping keys
 without a `:`. It never guesses at a construct it does not read.

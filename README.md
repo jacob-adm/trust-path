@@ -42,8 +42,9 @@ pip installs `trust-path` as a console script. Without installing, it runs from 
 ## How it works
 
 1. **Read the workflows.** trust-path reads every `.yml` and `.yaml` file in
-   `DIR/.github/workflows` with its own YAML reader, which refuses (exit status 2) any construct it
-   does not read rather than guess.
+   `DIR/.github/workflows` with its own YAML reader, which refuses any construct it does not read
+   rather than guess. A refused file is named on standard error with the reason, the other files
+   are still checked, and the exit status is 2.
 2. **Find untrusted runs.** A workflow runs with untrusted input when it has a trigger such as
    `pull_request_target`, `issues` or `issue_comment`, when it runs on `workflow_run` after such a
    workflow or after a `pull_request` workflow (followed through chains), or when it is a local
@@ -56,7 +57,7 @@ pip installs `trust-path` as a console script. Without installing, it runs from 
    environment and AI agent actions holding a credential.
 5. **Print one record per path.** Each record is `source`, `workflow`, `job`, `step` and `sink`,
    tab-separated and sorted. Like `grep`, trust-path exits 1 when it finds a path, 0 when it finds
-   none and 2 on an error.
+   none and 2 on an error, including any refused file.
 
 ## Commands
 

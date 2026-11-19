@@ -28,7 +28,8 @@ def main(argv=None):
     parser.add_argument("--version", action="version", version="trust-path " + __version__)
     args = parser.parse_args(argv)
     try:
-        records = Repo(args.dir).analyse()
+        repo = Repo(args.dir)
+        records = repo.analyse()
     except AnalysisError as e:
         sys.stderr.write("trust-path: %s\n" % e)
         return 2
@@ -40,6 +41,10 @@ def main(argv=None):
     else:
         for r in rows:
             sys.stdout.write("\t".join(r) + "\n")
+    for rel, reason in repo.refused:
+        sys.stderr.write("trust-path: %s: %s\n" % (rel, _clean(reason)))
+    if repo.refused:
+        return 2
     return 1 if rows else 0
 
 
