@@ -1,0 +1,4 @@
+on: issues
+jobs:
+  call:
+    uses: ./.github/workflows/gone.yml
