@@ -57,9 +57,11 @@ class PathTests(unittest.TestCase):
         self.assertEqual(recs, [
             ("issues:event text read by agent", wf, "triage", step,
              "agent:anthropics/claude-code-action"),
+            ("issues:event text read by agent", wf, "triage", step, "permissions.issues:write"),
             ("issues:event text read by agent", wf, "triage", step, "secrets.ANTHROPIC_API_KEY"),
             ("issues:github.event.issue.body", wf, "triage", step,
              "agent:anthropics/claude-code-action"),
+            ("issues:github.event.issue.body", wf, "triage", step, "permissions.issues:write"),
             ("issues:github.event.issue.body", wf, "triage", step, "secrets.ANTHROPIC_API_KEY"),
         ])
 

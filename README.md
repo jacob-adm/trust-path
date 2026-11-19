@@ -78,14 +78,17 @@ trust-path tests/fixtures/agent
 
 ```text
 issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write
 issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY
 issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write
 issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY
 ```
 
 The workflow runs when an issue is opened and gives `anthropics/claude-code-action` the issue body
-in its prompt and an API key. Anyone who can open an issue writes that text, and the agent acts on
-it while holding the key. Run `trust-path .` in a repository checkout to check its workflows.
+in its prompt, an API key and a token that can write issues. Anyone who can open an issue writes
+that text, and the agent acts on it while holding the key and can write text into issues that
+other workflows and agents read. Run `trust-path .` in a repository checkout to check its workflows.
 
 ## Documentation
 

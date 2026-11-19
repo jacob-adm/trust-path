@@ -48,7 +48,7 @@ reached. The sink field names what is reached:
 | Sink | Reported at |
 | --- | --- |
 | `secrets.NAME` | Each reached step whose `run:`, `with:` or `env:` uses it. A secret in the workflow's or job's `env:` is reported at the entry step. `secrets.*` means the whole context (`toJSON(secrets)` or a computed key). In a called workflow, only the secrets the caller passes (or all, with `secrets: inherit`), plus `GITHUB_TOKEN`. |
-| `permissions.SCOPE:write` | The entry step, for `actions`, `contents`, `id-token`, `packages` and `pull-requests` set to `write` (or `write-all`) on the job, or on the workflow when the job sets none. A called workflow without permissions uses the calling job's. |
+| `permissions.SCOPE:write` | The entry step, for `actions`, `contents`, `discussions`, `id-token`, `issues`, `packages` and `pull-requests` set to `write` (or `write-all`) on the job, or on the workflow when the job sets none. A called workflow without permissions uses the calling job's. `issues` and `discussions` count because injected text written there (a comment, a label, a new issue) is read by other workflows and AI agents that run on issue and discussion events, so it can travel on from there. |
 | `permissions:default` | The entry step, when neither the job nor the workflow (nor the caller) sets `permissions:`. The token then has the repository's default permissions, which the workflow files do not show and which can include write access. |
 | `environment:NAME` | The entry step, when the job has `environment:`. |
 | `agent:OWNER/REPO` | A reached AI agent action that holds a credential: a secret in its `with:` or `env:` or the job's `env:`, or `id-token: write`. |
