@@ -22,7 +22,10 @@ classifiers = [
 ]
 
 [project.urls]
+Homepage = "https://github.com/jacob-adm/trust-path"
+Documentation = "https://github.com/jacob-adm/trust-path/tree/main/docs"
 Source = "https://github.com/jacob-adm/trust-path"
+Issues = "https://github.com/jacob-adm/trust-path/issues"
 
 [project.scripts]
 trust-path = "trust_path.cli:main"

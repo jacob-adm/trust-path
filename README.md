@@ -17,7 +17,7 @@ check many more things. They report an untrusted input, a broad secret or a broa
 place in a file where it appears. trust-path adds three things: it pairs each source with the
 secret, permission or environment it reaches; it follows a source from one workflow to the next
 through `workflow_run` chains and local reusable workflows; and it treats AI agent actions as
-sinks. See [Other tools](docs/other-tools.md).
+sinks. See [Other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
 
 ## Requirements
 
@@ -64,7 +64,7 @@ pip installs `trust-path` as a console script. Without installing, it runs from 
 trust-path [--json] DIR
 ```
 
-`--json` writes the records as a JSON array. See [Command](docs/commands.md) for the fields and
+`--json` writes the records as a JSON array. See [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md) for the fields and
 exit status.
 
 ## Quick start
@@ -88,12 +88,14 @@ it while holding the key. Run `trust-path .` in a repository checkout to check i
 
 ## Documentation
 
-- [How trust-path finds paths](docs/model.md): sources, entry points, sinks, the AI agent action
+- [How trust-path finds paths](https://github.com/jacob-adm/trust-path/blob/main/docs/model.md): sources, entry points, sinks, the AI agent action
   list and the YAML subset.
-- [Command](docs/commands.md): output fields, JSON, exit status and an example across workflows.
-- [Limitations and security](docs/limitations.md): what trust-path does not see, read or do.
-- [Other tools](docs/other-tools.md): what zizmor and poutine cover and what trust-path adds.
+- [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md): output fields, JSON, exit status and an example across workflows.
+- [Limitations and security](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md): what trust-path does not see, read or do.
+- [Other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md): what zizmor and poutine cover and what trust-path adds.
+- [Contributing](https://github.com/jacob-adm/trust-path/blob/main/CONTRIBUTING.md): running the tests and contributing a change.
+- [Reporting a vulnerability](https://github.com/jacob-adm/trust-path/blob/main/SECURITY.md)
 
-## Licence
+## License
 
-Apache-2.0; see `LICENSE`.
+Apache License 2.0; see [LICENSE](https://github.com/jacob-adm/trust-path/blob/main/LICENSE).
