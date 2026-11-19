@@ -13,7 +13,11 @@ from one workflow to another through `workflow_run` and reusable workflows. It r
 change workflows or decide what to do about a path.
 
 [zizmor](https://github.com/zizmorcore/zizmor) and [poutine](https://github.com/boostsecurityio/poutine)
-check many more things; see [Other tools](docs/other-tools.md) for what trust-path adds.
+check many more things. They report an untrusted input, a broad secret or a broad permission at the
+place in a file where it appears. trust-path adds three things: it pairs each source with the
+secret, permission or environment it reaches; it follows a source from one workflow to the next
+through `workflow_run` chains and local reusable workflows; and it treats AI agent actions as
+sinks. See [Other tools](docs/other-tools.md).
 
 ## Requirements
 
