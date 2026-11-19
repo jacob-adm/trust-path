@@ -2,7 +2,8 @@
 
 Supported: block mappings and sequences, plain, single-quoted and
 double-quoted scalars (also over several lines), literal (|) and folded (>)
-block scalars, flow sequences and mappings, and comments.
+block scalars with chomping and indentation indicators, flow sequences and
+mappings, and comments.
 
 Every scalar is returned as a str; an empty value is None. YAML features
 outside the subset (anchors, aliases, tags, complex keys, merge keys,
@@ -97,32 +98,51 @@ def _quote_end(s, start):
     return -1
 
 
-def _fold(parts):
+_ODD_BACKSLASHES = re.compile(r"(?<!\\)(\\\\)*\\$")
+
+
+def _fold(parts, joined=()):
     """Fold trimmed lines into one value: a line break becomes a space, and
-    each blank line becomes a newline."""
+    each blank line becomes a newline. A line break after a line whose index
+    is in `joined` (an escaped line break) becomes nothing."""
     out = ""
     blanks = 0
+    last = 0
     for n, part in enumerate(parts):
         if part == "" and n:
             blanks += 1
             continue
         if n:
-            out += "\n" * blanks if blanks else " "
+            out += "\n" * blanks if blanks or last in joined else " "
         out += part
         blanks = 0
+        last = n
     return out
+
+
+def _rtrim(line):
+    """Strip trailing spaces and tabs, but not one escaped by a backslash."""
+    t = line.rstrip(" \t")
+    if len(t) < len(line) and _ODD_BACKSLASHES.search(t):
+        t = line[:len(t) + 1]
+    return t
 
 
 def _unquote(raw, lineno):
     """Value of a complete quoted scalar (raw includes both quotes)."""
     q, body = raw[0], raw[1:-1]
     lines = body.split("\n")
+    joined = set()
     if len(lines) > 1:
-        if q == '"' and any(re.search(r"(?<!\\)(\\\\)*\\$", ln) for ln in lines[:-1]):
-            raise YamlError(lineno, "escaped line breaks in double-quoted strings are not supported")
-        lines = ([lines[0].rstrip(" \t")] + [ln.strip(" \t") for ln in lines[1:-1]]
-                 + [lines[-1].lstrip(" \t")])
-    folded = _fold(lines)
+        lines = [lines[0]] + [ln.lstrip(" \t") for ln in lines[1:]]
+        for n in range(len(lines) - 1):
+            if q == '"' and _ODD_BACKSLASHES.search(lines[n]):
+                # An escaped line break: keep the text before the backslash.
+                lines[n] = lines[n][:-1]
+                joined.add(n)
+            else:
+                lines[n] = _rtrim(lines[n])
+    folded = _fold(lines, joined)
     if q == "'":
         return folded.replace("''", "'")
     out = []
@@ -189,7 +209,7 @@ class _Parser(object):
             self.err("unexpected content")
         return node
 
-    def block(self, min_indent):
+    def block(self, min_indent, parent_indent=None):
         line = self.peek()
         if line is None or _indent(line) < min_indent:
             return None
@@ -199,7 +219,8 @@ class _Parser(object):
             return self.sequence(ind)
         if _find_colon(body) >= 0 or body == "?" or body.startswith("? "):
             return self.mapping(ind)
-        return self.scalar_value(self.i, ind, ind - 1)
+        return self.scalar_value(
+            self.i, ind, ind - 1 if parent_indent is None else parent_indent)
 
     def mapping(self, ind):
         result = {}
@@ -259,7 +280,7 @@ class _Parser(object):
             col = ind + 1 + (len(rest) - len(rest.lstrip(" ")))
             # Read the item as if it started on its own line at its column.
             self.lines[self.i] = " " * col + rest.lstrip(" ")
-            result.append(self.block(col))
+            result.append(self.block(col, ind))
 
     def scalar_value(self, start, col, parent_indent):
         """Parse the value at column `col` of line `start`; following lines
@@ -314,10 +335,12 @@ class _Parser(object):
 
     def block_scalar(self, header, parent_indent):
         start = self.i
-        m = re.match(r"^([|>])([+-]?)\s*(#.*)?$", header)
+        m = re.match(r"^([|>])(?:([1-9])([+-]?)|([+-]?)([1-9]?))\s*(#.*)?$", header)
         if not m:
             self.err("block scalar header %r is not supported" % header.strip())
-        style, chomp = m.group(1), m.group(2)
+        style = m.group(1)
+        chomp = m.group(3) or m.group(4)
+        explicit = m.group(2) or m.group(5)
         self.i += 1
         lines = []
         while self.i < len(self.lines):
@@ -326,13 +349,19 @@ class _Parser(object):
                 break
             lines.append(ln)
             self.i += 1
-        trailing = 0
+        end = self.i
         while lines and not lines[-1].strip():
             lines.pop()
-            trailing += 1
+        # Line breaks after the last content line (or the header, when there
+        # is none). The file's last line has none.
+        first = start + len(lines) if lines else start + 1
+        breaks = len([n for n in range(first, end) if n < len(self.lines) - 1])
         if not lines:
-            return "\n" * trailing if chomp == "+" else ""
-        ind = _indent(next(ln for ln in lines if ln.strip()))
+            return "\n" * breaks if chomp == "+" else ""
+        if explicit:
+            ind = max(parent_indent, 0) + int(explicit)
+        else:
+            ind = _indent(next(ln for ln in lines if ln.strip()))
         for n, ln in enumerate(lines):
             if ln.strip() and _indent(ln) < ind:
                 if ln[_indent(ln)] == "\t":
@@ -356,8 +385,8 @@ class _Parser(object):
         if chomp == "-":
             return text
         if chomp == "+":
-            return text + "\n" * (1 + trailing)
-        return text + "\n"
+            return text + "\n" * breaks
+        return text + "\n" * min(breaks, 1)
 
     def flow(self, text):
         start = self.i
