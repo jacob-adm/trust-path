@@ -2,10 +2,20 @@
 
 ```
 trust-path [--json] DIR
+trust-path [--json] --ref REF [DIR]
 ```
 
 `DIR` is a repository checkout. trust-path reads the workflow files in `DIR/.github/workflows`
 and writes one record per path from untrusted input to a sink.
+
+With `--ref REF`, trust-path reads `.github/workflows` from git at `REF` (a branch, tag or commit)
+in the repository at `DIR`, which defaults to the current directory. Nothing is checked out and
+the working tree is not read, so it can check a pull request's branch or an old release without
+switching to it:
+
+```sh
+trust-path --ref origin/main
+```
 
 ## Output
 
@@ -35,9 +45,9 @@ once, so the same files always give the same output.
 | --- | --- |
 | 0 | No path found. Also when `DIR/.github/workflows` does not exist. |
 | 1 | At least one path found. |
-| 2 | Error: `DIR` is not a directory, or at least one workflow file was refused. Paths found in the other files are still written. |
+| 2 | Error: `DIR` is not a directory, or, with `--ref`, not a git repository or `REF` is not a commit; or at least one workflow file was refused. Paths found in the other files are still written. |
 
-A workflow file is refused when it cannot be read, uses YAML trust-path does not read, is not a
+A workflow file is refused when it cannot be read (with `--ref`, also when it is a symbolic link), uses YAML trust-path does not read, is not a
 workflow (no `jobs:` mapping, a job that is not a mapping, steps that are not a list), or calls a
 local reusable workflow that is not in the directory. trust-path still reads every other file and
 writes the paths it finds in them, then writes one line per refused file to standard error:

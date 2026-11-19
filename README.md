@@ -63,9 +63,11 @@ pip installs `trust-path` as a console script. Without installing, it runs from 
 
 ```
 trust-path [--json] DIR
+trust-path [--json] --ref REF [DIR]
 ```
 
-`--json` writes the records as a JSON array. See [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md) for the fields and
+`--json` writes the records as a JSON array. `--ref REF` reads the workflows from git at a branch,
+tag or commit without checking it out; it is the only option that runs git. See [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md) for the fields and
 exit status.
 
 ## Quick start

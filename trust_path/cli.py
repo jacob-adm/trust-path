@@ -1,4 +1,4 @@
-"""Command line: trust-path [--json] DIR"""
+"""Command line: trust-path [--json] [--ref REF] DIR"""
 
 import argparse
 import json
@@ -23,12 +23,18 @@ def main(argv=None):
                     "permission, an environment or an AI agent action in the GitHub Actions "
                     "workflows under DIR/.github/workflows. Exit status: 0 no path, 1 paths "
                     "found, 2 error.")
-    parser.add_argument("dir", metavar="DIR", help="a repository checkout")
+    parser.add_argument("dir", metavar="DIR", nargs="?",
+                        help="a repository checkout (with --ref, a git repository; default .)")
+    parser.add_argument("--ref", metavar="REF",
+                        help="read the workflows from git at REF (a branch, tag or commit) "
+                             "instead of from the files in DIR, without checking it out")
     parser.add_argument("--json", action="store_true", help="write a JSON array of records")
     parser.add_argument("--version", action="version", version="trust-path " + __version__)
     args = parser.parse_args(argv)
+    if args.dir is None and args.ref is None:
+        parser.error("DIR is required without --ref")
     try:
-        repo = Repo(args.dir)
+        repo = Repo(args.dir or ".", args.ref)
         records = repo.analyse()
     except AnalysisError as e:
         sys.stderr.write("trust-path: %s\n" % e)
