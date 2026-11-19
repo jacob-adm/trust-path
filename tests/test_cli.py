@@ -1,6 +1,7 @@
 import json
 import os
 import shutil
+import stat
 import subprocess
 import sys
 import tempfile
@@ -167,6 +168,17 @@ def git(repo, *args):
                    cwd=repo, env=env, check=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
 
 
+def remove_tree(path):
+    """shutil.rmtree that also removes read-only files (git objects on Windows)."""
+    def retry(func, name, _exc):
+        os.chmod(name, stat.S_IWRITE)
+        func(name)
+    if sys.version_info >= (3, 12):
+        shutil.rmtree(path, onexc=retry)
+    else:
+        shutil.rmtree(path, onerror=retry)
+
+
 @unittest.skipUnless(shutil.which("git"), "git is not installed")
 class RefTests(unittest.TestCase):
     CALLER = ("on: pull_request_target\njobs:\n  c:\n    uses: ./.github/workflows/called.yml\n"
@@ -177,7 +189,7 @@ class RefTests(unittest.TestCase):
 
     def setUp(self):
         self.repo = tempfile.mkdtemp()
-        self.addCleanup(shutil.rmtree, self.repo)
+        self.addCleanup(remove_tree, self.repo)
         git(self.repo, "init", "-q")
         self.write("caller.yml", self.CALLER)
         self.write("called.yml", self.CALLED % "${{ secrets.OLD }}")
