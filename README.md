@@ -17,7 +17,7 @@ check many more things. They report an untrusted input, a broad secret or a broa
 place in a file where it appears. trust-path adds three things: it pairs each source with the
 secret, permission or environment it reaches; it follows a source from one workflow to the next
 through `workflow_run` chains and local reusable workflows; and it treats AI agent actions as
-sinks. See [Other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
+sinks. See [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
 
 ## Requirements
 
@@ -98,7 +98,8 @@ other workflows and agents read. Run `trust-path .` in a repository checkout to 
   list and the YAML subset.
 - [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md): output fields, JSON, exit status and an example across workflows.
 - [Limitations and security](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md): what trust-path does not see, read or do.
-- [Other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md): what zizmor and poutine cover and what trust-path adds.
+- [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md): a tested stack with git surface
+  and git-overlap, and what zizmor and poutine cover and what trust-path adds.
 - [Contributing](https://github.com/jacob-adm/trust-path/blob/main/CONTRIBUTING.md): running the tests and contributing a change.
 - [Reporting a vulnerability](https://github.com/jacob-adm/trust-path/blob/main/SECURITY.md)
 
