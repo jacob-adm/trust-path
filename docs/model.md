@@ -80,5 +80,5 @@ read as text.
 
 It refuses, with exit status 2 and the file and line, anchors (`&`), aliases (`*`), tags (`!`),
 merge keys (`<<`), complex keys (`?`), directives (`%`), several documents in one file, tabs in
-indentation, duplicate keys, block scalar indentation indicators (`|2`) and flow mapping keys
+indentation, duplicate keys, block scalar indentation indicators (`|2`), nesting too deep to read (about a thousand levels) and flow mapping keys
 without a `:`. It never guesses at a construct it does not read.

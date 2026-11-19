@@ -109,6 +109,13 @@ class RefusedTests(unittest.TestCase):
         self.refused("a: 1\na: 2\n", 2, "duplicate key 'a'")
         self.refused("a: |2\n  x\n", 1, "block scalar header '|2' is not supported")
 
+    def test_deep_nesting(self):
+        self.refused("a: " + "[" * 3000 + "]" * 3000 + "\n", 1, "nesting is too deep")
+        deep = "".join(" " * n + "k%d:\n" % n for n in range(1500))
+        with self.assertRaises(YamlError) as cm:
+            load(deep)
+        self.assertEqual(cm.exception.message, "nesting is too deep")
+
     def test_malformed(self):
         self.refused("a: [1, 2\n", 1, "unterminated flow collection")
         self.refused("a: 'x\n", 1, "unterminated quoted string")

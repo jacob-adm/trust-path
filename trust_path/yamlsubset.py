@@ -29,7 +29,11 @@ _HEX = {"x": 2, "u": 4, "U": 8}
 
 def load(text):
     """Parse one YAML document and return dicts, lists, str and None."""
-    return _Parser(text).document()
+    parser = _Parser(text)
+    try:
+        return parser.document()
+    except RecursionError:
+        raise YamlError(parser.i + 1, "nesting is too deep")
 
 
 def _indent(line):
