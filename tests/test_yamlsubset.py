@@ -83,6 +83,10 @@ class SupportedTests(unittest.TestCase):
             """)
         self.assertEqual(doc, {"m": [["a", "b"], ["c", {"d": "e", "f": ["g"]}]]})
 
+    def test_tab_after_indentation_is_text(self):
+        self.assertEqual(load("a: |\n  x\n  \ty\nb: 1\n"), {"a": "x\n\ty\n", "b": "1"})
+        self.assertEqual(load("a: \"x\n\t y\"\n"), {"a": "x y"})
+
     def test_document_markers(self):
         self.assertEqual(y("---\na: 1\n...\n"), {"a": "1"})
 
@@ -106,6 +110,8 @@ class RefusedTests(unittest.TestCase):
         self.refused("%YAML 1.2\n---\na: 1\n", 1, "directives are not supported")
         self.refused("a: 1\n---\nb: 2\n", 2, "several documents in one file are not supported")
         self.refused("a:\n\tb: 1\n", 2, "tabs in indentation are not supported")
+        self.refused("a: |\n\tx\n", 2, "tabs in indentation are not supported")
+        self.refused("a: |\n  x\n \ty\n", 3, "tabs in indentation are not supported")
         self.refused("a: 1\na: 2\n", 2, "duplicate key 'a'")
         self.refused("a: |2\n  x\n", 1, "block scalar header '|2' is not supported")
 

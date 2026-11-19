@@ -150,9 +150,6 @@ class _Parser(object):
             text = text[1:]
         self.lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         self.i = 0
-        for n, line in enumerate(self.lines):
-            if line.lstrip(" ").startswith("\t") and line.strip():
-                raise YamlError(n + 1, "tabs in indentation are not supported")
 
     def err(self, message, n=None):
         raise YamlError((self.i if n is None else n) + 1, message)
@@ -161,7 +158,11 @@ class _Parser(object):
         """Skip blank and comment lines; return the next line or None."""
         while self.i < len(self.lines) and _is_blank(self.lines[self.i]):
             self.i += 1
-        return self.lines[self.i] if self.i < len(self.lines) else None
+        if self.i >= len(self.lines):
+            return None
+        if self.lines[self.i].lstrip(" ").startswith("\t"):
+            self.err("tabs in indentation are not supported")
+        return self.lines[self.i]
 
     def document(self):
         line = self.peek()
@@ -330,6 +331,8 @@ class _Parser(object):
         ind = _indent(next(ln for ln in lines if ln.strip()))
         for n, ln in enumerate(lines):
             if ln.strip() and _indent(ln) < ind:
+                if ln[_indent(ln)] == "\t":
+                    self.err("tabs in indentation are not supported", start + 1 + n)
                 self.err("block scalar line is less indented than the first", start + 1 + n)
         body = [ln[ind:] for ln in lines]
         if style == "|":
