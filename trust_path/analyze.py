@@ -81,7 +81,11 @@ AGENT_ACTIONS = (
 # Actions that download artifacts from another workflow run.
 ARTIFACT_ACTIONS = ("actions/download-artifact", "dawidd6/action-download-artifact")
 
-WRITE_SCOPES = ("actions", "contents", "id-token", "packages", "pull-requests")
+# Token scopes whose write access is a sink. issues and discussions count
+# because text written there is read by other workflows and AI agents that
+# run on issue and discussion events: injected text can travel on.
+WRITE_SCOPES = ("actions", "contents", "discussions", "id-token", "issues", "packages",
+                "pull-requests")
 
 _EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 _CONTEXT = re.compile(

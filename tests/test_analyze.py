@@ -170,8 +170,14 @@ class SinkTests(unittest.TestCase):
     def test_write_all(self):
         self.assertEqual(sinks(analyse(w=self.STEP % ("permissions: write-all", ""))), [
             "permissions.actions:write", "permissions.contents:write",
-            "permissions.id-token:write", "permissions.packages:write",
+            "permissions.discussions:write", "permissions.id-token:write",
+            "permissions.issues:write", "permissions.packages:write",
             "permissions.pull-requests:write"])
+
+    def test_issues_and_discussions_write(self):
+        recs = analyse(w=self.STEP % ("permissions: {issues: write, discussions: write}", ""))
+        self.assertEqual(sinks(recs), ["permissions.discussions:write",
+                                       "permissions.issues:write"])
 
     def test_environment_mapping(self):
         recs = analyse(w=self.STEP % ("permissions: {}", "environment: {name: prod, url: x}"))
