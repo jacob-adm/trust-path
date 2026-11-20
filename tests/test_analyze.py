@@ -166,25 +166,46 @@ class SourceTests(unittest.TestCase):
             """)
         self.assertEqual(recs, [])
 
-    def test_job_env_enters_at_first_step(self):
-        recs = analyse(w="""
-            on: issues
-            permissions: {}
-            jobs:
-              j:
-                runs-on: ubuntu-latest
+    ENV = """
+        on: issues
+        permissions: {}
+        jobs:
+          j:
+            runs-on: ubuntu-latest
+            env:
+              TITLE: ${{ github.event.issue.title }}
+            steps:
+              - name: first
+                run: %s
+              - name: second
+                run: %s
                 env:
-                  TITLE: ${{ github.event.issue.title }}
-                steps:
-                  - name: first
-                    run: true
-                  - name: second
-                    run: ./x
-                    env:
-                      T: ${{ secrets.T }}
-            """)
+                  T: ${{ secrets.T }}%s
+        """
+
+    def test_env_variable_alone_is_not_an_entry(self):
+        # The recommended pattern: the text reaches the script as data.
+        self.assertEqual(analyse(w=self.ENV % ("true", 'echo "$TITLE"', "")), [])
+        self.assertEqual(analyse(w=self.ENV % (
+            "true", 'echo "$BODY"', "\n                  BODY: ${{ github.event.issue.body }}")), [])
+
+    def test_env_expression_is_an_entry_where_it_is_expanded(self):
+        recs = analyse(w=self.ENV % ("true", "echo ${{ env.TITLE }}", ""))
         self.assertEqual([(r[0], r[3], r[4]) for r in recs],
                          [("issues:github.event.issue.title", "second", "secrets.T")])
+        recs = analyse(w=self.ENV % ("echo ${{ env.title }}", "./x", ""))
+        self.assertEqual([(r[0], r[3], r[4]) for r in recs],
+                         [("issues:github.event.issue.title", "second", "secrets.T")])
+
+    def test_step_env_expression_and_override(self):
+        recs = analyse(w=self.ENV % (
+            "true", "echo ${{ env.BODY }}",
+            "\n                  BODY: ${{ github.event.issue.body }}"))
+        self.assertEqual([(r[0], r[3], r[4]) for r in recs],
+                         [("issues:github.event.issue.body", "second", "secrets.T")])
+        # A step that sets the variable to a fixed value no longer carries the title.
+        self.assertEqual(analyse(w=self.ENV % (
+            "true", "echo ${{ env.TITLE }}", "\n                  TITLE: fixed")), [])
 
     def test_secret_before_entry_is_not_reached(self):
         recs = analyse(w="""
