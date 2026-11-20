@@ -4,13 +4,10 @@ This page shows the tested stack trust-path is part of, then what two similar to
 
 The commands on this page use [trust-path](https://github.com/jacob-adm/trust-path),
 [git-surface](https://github.com/jacob-adm/git-surface) and
-[git-overlap](https://github.com/jacob-adm/git-overlap). trust-path and git-surface are not on PyPI
-yet and install from GitHub:
+[git-overlap](https://github.com/jacob-adm/git-overlap), all on PyPI:
 
 ```sh
-pip install git+https://github.com/jacob-adm/trust-path
-pip install git+https://github.com/jacob-adm/git-surface
-pip install git-overlap
+pip install trust-path git-surface git-overlap
 ```
 
 The examples come from a test repository whose `main` has a small Python module, its tests, a

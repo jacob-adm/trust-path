@@ -102,6 +102,8 @@ key and can write text into issues that other workflows and agents read. Run `tr
   list and the YAML subset.
 - [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md): output fields, JSON, exit status and an example across workflows.
 - [Limitations and security](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md): what trust-path does not see, read or do.
+- [Benchmark](https://github.com/jacob-adm/trust-path/blob/main/docs/benchmark.md): a repeatable run on pinned public workflows, with a
+  per-file comparison against zizmor
 - [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md): a tested stack with git surface
   and git-overlap, and what zizmor and poutine cover and what trust-path adds.
 - [Contributing](https://github.com/jacob-adm/trust-path/blob/main/CONTRIBUTING.md): running the tests and contributing a change.
