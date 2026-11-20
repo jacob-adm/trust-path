@@ -1,0 +1,17 @@
+# Any user can start the agent; it runs in a read-only sandbox.
+name: codex-read-only
+on:
+  issues:
+    types: [opened]
+permissions:
+  issues: read
+jobs:
+  classify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: openai/codex-action@v1
+        with:
+          prompt: Classify issue ${{ github.event.issue.number }}.
+          openai-api-key: ${{ secrets.OPENAI_API_KEY }}
+          allow-users: "*"
+          sandbox: read-only

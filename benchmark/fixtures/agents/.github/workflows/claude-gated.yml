@@ -1,0 +1,15 @@
+# The action's default: only users with write access start the agent.
+name: claude-gated
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  contents: write
+  pull-requests: write
+jobs:
+  assist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}

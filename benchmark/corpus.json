@@ -6,5 +6,8 @@
   {
     "url": "https://github.com/step-security/github-actions-goat",
     "commit": "4da23c8602b4589bacdf7de77240113e02cdb884"
+  },
+  {
+    "path": "fixtures/agents"
   }
 ]
