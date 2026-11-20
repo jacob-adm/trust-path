@@ -78,11 +78,13 @@ Matching is on `owner/repo`, case-insensitive, at any version.
 trust-path reads workflows with its own reader for the YAML that workflows use: block mappings and
 sequences, plain and quoted scalars (also over several lines, with escaped line breaks in
 double-quoted scalars), `|` and `>` block scalars with `-` or `+` and an indentation indicator such
-as `|2` or `>1-`, flow collections such as `[a, b]` and `{a: b}`, comments and a leading `---`.
+as `|2` or `>1-`, flow collections such as `[a, b]` and `{a: b}`, anchors (`&name`) with aliases (`*name`) on block
+values and sequence items, comments and a leading `---`.
 Every value is read as text.
 
 It refuses a file, naming it and the line (exit status 2; the other files are still read), that
-has anchors (`&`), aliases (`*`), tags (`!`), merge keys (`<<`), complex keys (`?`), directives
+has tags (`!`), merge keys (`<<`), complex keys (`?`), an anchor or alias on a mapping key or inside a
+flow collection, an alias with no anchor before it, aliases that expand to more than 100,000 values, directives
 (`%`), several documents in one file, tabs in indentation, duplicate keys, a block scalar line less
 indented than its block, unknown escapes in double-quoted scalars, nesting too deep to read (about
 a thousand levels) and flow mapping keys without a `:`. It never guesses at a construct it does not

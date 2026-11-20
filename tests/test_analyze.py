@@ -367,7 +367,7 @@ class ErrorTests(unittest.TestCase):
 
     def test_yaml_error_names_file_and_line(self):
         self.assertEqual(refused(w="on: push\njobs:\n  a: !!map {}\n"), [(
-            ".github/workflows/w.yml", "line 3: anchors, aliases and tags are not supported")])
+            ".github/workflows/w.yml", "line 3: tags are not supported")])
 
     def test_readable_files_are_still_analysed(self):
         good = """

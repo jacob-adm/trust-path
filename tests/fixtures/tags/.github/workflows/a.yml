@@ -1,7 +1,6 @@
 on: push
 jobs:
-  a: &job
+  a: !!map
     runs-on: ubuntu-latest
     steps:
       - run: true
-  b: *job
