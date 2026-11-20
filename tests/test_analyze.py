@@ -207,6 +207,42 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(analyse(w=self.ENV % (
             "true", "echo ${{ env.TITLE }}", "\n                  TITLE: fixed")), [])
 
+    FILES = """
+        on: %s
+        jobs:
+          j:
+            runs-on: ubuntu-latest
+            steps:
+              - id: Changed
+                uses: %s
+              - name: list
+                run: for f in ${{ steps.changed.outputs.%s }}; do echo "$f"; done
+                env:
+                  T: ${{ secrets.T }}%s
+        """
+
+    def test_changed_file_names_are_an_entry(self):
+        for action in ("tj-actions/changed-files@v40", "Ana06/get-changed-files@v2",
+                       "jitterbit/get-changed-files@v1"):
+            recs = analyse(w=self.FILES % ("pull_request_target", action, "all_changed_files", ""))
+            self.assertEqual([(r[0], r[3], r[4]) for r in recs], [
+                ("pull_request_target:changed file names", "list", "permissions:default"),
+                ("pull_request_target:changed file names", "list", "secrets.T")])
+
+    def test_changed_file_counts_and_other_steps_are_not(self):
+        for output in ("all_changed_files_count", "any_changed", "only_modified"):
+            self.assertEqual(analyse(w=self.FILES % (
+                "pull_request_target", "tj-actions/changed-files@v40", output, "")), [])
+        self.assertEqual(analyse(w=self.FILES % (
+            "pull_request_target", "actions/setup-python@v5", "all_changed_files", "")), [])
+
+    def test_changed_file_names_through_env_are_data(self):
+        text = (self.FILES % ("pull_request_target", "tj-actions/changed-files@v40", "x", "")
+                ).replace("${{ steps.changed.outputs.x }}", '"$FILES"').replace(
+            "T: ${{ secrets.T }}",
+            "T: ${{ secrets.T }}\n                  FILES: ${{ steps.changed.outputs.all }}")
+        self.assertEqual(analyse(w=text), [])
+
     def test_secret_before_entry_is_not_reached(self):
         recs = analyse(w="""
             on: pull_request_target

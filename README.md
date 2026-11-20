@@ -51,7 +51,8 @@ pip installs `trust-path` as a console script. Without installing, it runs from 
    reusable workflow called from such a run.
 3. **Find where input enters each job.** A step enters untrusted input when it uses a context such
    as `github.event.pull_request.title` in `run:` or `with:` (directly, or through
-   `${{ env.NAME }}`), checks out or fetches the pull request's head, downloads an artifact from the upstream run, or is an AI agent action.
+   `${{ env.NAME }}`), checks out or fetches the pull request's head, downloads an artifact from the upstream run, expands the changed file names of a pull
+   request, or is an AI agent action.
 4. **Collect what it reaches.** The entry step and every later step of the same job are reached.
    trust-path collects the secrets they use and the job's write permissions, `id-token: write`,
    environment and AI agent actions holding a credential.
