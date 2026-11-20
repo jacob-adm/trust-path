@@ -1,5 +1,18 @@
 {
+  "agents": {
+    "agent_files_by_gate": {
+      "anyone": 3,
+      "not-modelled": 1,
+      "write-access": 2
+    },
+    "by_category": {
+      "agent": 20
+    },
+    "records": 20,
+    "refused": 0
+  },
   "github-actions-goat": {
+    "agent_files_by_gate": {},
     "by_category": {
       "head-code": 2
     },
@@ -7,6 +20,7 @@
     "refused": 0
   },
   "gravy-overflow": {
+    "agent_files_by_gate": {},
     "by_category": {
       "expression": 52,
       "head-code": 19

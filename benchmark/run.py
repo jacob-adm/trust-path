@@ -1,6 +1,7 @@
 # SPDX-License-Identifier: Apache-2.0
 """Run trust-path, and zizmor when it is installed, on pinned commits of
-public repositories and compare what they report per workflow file.
+public repositories and on the agent workflows kept beside this script, and
+compare what they report per workflow file.
 
     python3 benchmark/run.py [--corpus FILE] [--expected FILE] [--cache DIR] [--update]
 
@@ -38,7 +39,18 @@ def category(source):
 def summarise(records, refused):
     """The counts kept in the expected file for one repository."""
     by = collections.Counter(category(r["source"]) for r in records)
-    return {"records": len(records), "refused": refused, "by_category": dict(sorted(by.items()))}
+    return {"records": len(records), "refused": refused, "by_category": dict(sorted(by.items())),
+            "agent_files_by_gate": agent_gates(records)}
+
+
+def agent_gates(records):
+    """Number of workflow files with an agent path, for each gate value."""
+    gates = collections.defaultdict(set)
+    for r in records:
+        if category(r["source"]) == "agent":
+            gate = r.get("detail", "").split(";")[0].replace("gate=", "") or "none"
+            gates[gate].add(os.path.basename(r["workflow"]))
+    return dict((g, len(files)) for g, files in sorted(gates.items()))
 
 
 def injection_files(records):
@@ -103,19 +115,24 @@ def main(argv=None):
         else:
             print("zizmor: not installed, comparison skipped")
         for repo in corpus:
-            name = repo["url"].rstrip("/").split("/")[-1]
-            dest = os.path.join(cache, name + "-" + repo["commit"][:12])
-            fetch(repo["url"], repo["commit"], dest)
+            if "path" in repo:  # workflows kept beside the corpus file
+                name, at = os.path.basename(repo["path"]), "local"
+                dest = os.path.join(os.path.dirname(os.path.abspath(args.corpus)), repo["path"])
+            else:
+                name, at = repo["url"].rstrip("/").split("/")[-1], repo["commit"][:12]
+                dest = os.path.join(cache, name + "-" + at)
+                fetch(repo["url"], repo["commit"], dest)
             p = _run([sys.executable, "-m", "trust_path", "--json", dest],
                      cwd=os.path.dirname(HERE), ok=(0, 1, 2))
             records = json.loads(p.stdout)
             refused = len(p.stderr.splitlines())
             actual[name] = summarise(records, refused)
             files = os.listdir(os.path.join(dest, ".github", "workflows"))
-            print("\n%s @ %s (%d workflow files)" % (name, repo["commit"][:12], len(files)))
+            print("\n%s @ %s (%d workflow files)" % (name, at, len(files)))
             print("  trust-path: %(records)d records, %(refused)d files refused, "
                   "%(by_category)s" % actual[name])
-            print("  trust-path: %d files with an agent path" % len(agent_files(records)))
+            print("  trust-path: %d files with an agent path, by gate %s" % (
+                len(agent_files(records)), actual[name]["agent_files_by_gate"]))
             if have_zizmor:
                 findings = json.loads(_run(ZIZMOR + [dest], ok=tuple(range(15))).stdout or "[]")
                 print("  injection, by workflow file: %s" % compare(

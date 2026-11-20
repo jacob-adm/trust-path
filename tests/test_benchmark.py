@@ -42,7 +42,20 @@ class PureTests(unittest.TestCase):
     def test_summarise(self):
         records = [rec("issues:github.event.issue.title"), rec("issues:event text read by agent")]
         self.assertEqual(bench.summarise(records, 1), {
-            "records": 2, "refused": 1, "by_category": {"agent": 1, "expression": 1}})
+            "records": 2, "refused": 1, "by_category": {"agent": 1, "expression": 1},
+            "agent_files_by_gate": {"none": 1}})
+
+    def test_agent_gates_count_files(self):
+        def agent(workflow, detail):
+            return {"source": "issues:event text read by agent", "workflow": workflow,
+                    "detail": detail}
+        records = [agent("a.yml", "gate=anyone; tools=action-default"),
+                   agent("a.yml", "gate=anyone; tools=action-default"),
+                   agent("b.yml", "gate=anyone; sandbox=read-only"),
+                   agent("c.yml", "gate=write-access"),
+                   {"source": "issues:github.event.issue.title", "workflow": "d.yml",
+                    "detail": "-"}]
+        self.assertEqual(bench.agent_gates(records), {"anyone": 2, "write-access": 1})
 
     def test_files_and_compare(self):
         records = [rec("issues:github.event.issue.title", ".github/workflows/a.yml"),
@@ -58,6 +71,26 @@ class PureTests(unittest.TestCase):
         self.assertEqual(bench.zizmor_files(findings), {"c.yaml"})
         self.assertEqual(bench.compare({"a.yml", "b.yml"}, {"b.yml", "c.yml"}),
                          {"both": 1, "trust-path only": 1, "zizmor only": 1})
+
+
+class LocalCorpusTests(unittest.TestCase):
+    def test_shipped_agent_workflows_match_the_expected_file(self):
+        """The agent workflows beside the script need no network."""
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp)
+        here = os.path.join(ROOT, "benchmark")
+        corpus = os.path.join(here, "agents-only.json")
+        with open(os.path.join(here, "expected.json")) as f:
+            expected = {"agents": json.load(f)["agents"]}
+        with open(os.path.join(tmp, "expected.json"), "w") as f:
+            json.dump(expected, f)
+        out = io.StringIO()
+        with contextlib.redirect_stdout(out):
+            code = bench.main(["--corpus", corpus, "--expected",
+                               os.path.join(tmp, "expected.json")])
+        self.assertEqual(code, 0, out.getvalue())
+        self.assertEqual(expected["agents"]["agent_files_by_gate"],
+                         {"anyone": 3, "not-modelled": 1, "write-access": 2})
 
 
 class RunTests(unittest.TestCase):
@@ -87,12 +120,14 @@ class RunTests(unittest.TestCase):
         self.assertEqual(self.run_main("--update")[0], 0)
         with open(self.expected) as f:
             self.assertEqual(json.load(f), {"repo": {
-                "records": 2, "refused": 0, "by_category": {"expression": 2}}})
+                "records": 2, "refused": 0, "by_category": {"expression": 2},
+                "agent_files_by_gate": {}}})
         code, out = self.run_main()
         self.assertEqual(code, 0)
         self.assertIn("trust-path counts match", out)
         with open(self.expected, "w") as f:
-            json.dump({"repo": {"records": 3, "refused": 0, "by_category": {"expression": 3}}}, f)
+            json.dump({"repo": {"records": 3, "refused": 0, "by_category": {"expression": 3},
+                                "agent_files_by_gate": {}}}, f)
         code, out = self.run_main()
         self.assertEqual(code, 1)
         self.assertIn("DIFFERENT", out)

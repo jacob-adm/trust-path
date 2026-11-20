@@ -1,0 +1,15 @@
+# An agent action whose gate trust-path does not model.
+name: gemini
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  id-token: write
+  issues: write
+jobs:
+  assist:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/run-gemini-cli@v0
+        with:
+          prompt: Help with issue ${{ github.event.issue.number }}.

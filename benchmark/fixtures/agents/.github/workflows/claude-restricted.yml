@@ -1,0 +1,20 @@
+# Any user can start the agent; the workflow limits its tools.
+name: claude-restricted
+on:
+  issues:
+    types: [opened]
+permissions:
+  issues: write
+jobs:
+  triage:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: anthropics/claude-code-action@v1
+        with:
+          prompt: Label issue ${{ github.event.issue.number }}.
+          anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
+          claude_args: |
+            --permission-mode auto
+            --disallowedTools "WebFetch,WebSearch,Write,Edit"
