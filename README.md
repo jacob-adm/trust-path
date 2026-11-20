@@ -79,18 +79,22 @@ trust-path tests/fixtures/agent
 ```
 
 ```text
-issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action
-issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write
-issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY
-issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action
-issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write
-issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action	gate=anyone; tools=action-default
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write	gate=anyone; tools=action-default
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY	gate=anyone; tools=action-default
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.GITHUB_TOKEN	gate=anyone; tools=action-default
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action	gate=anyone; tools=action-default
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write	-
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY	-
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.GITHUB_TOKEN	-
 ```
 
 The workflow runs when an issue is opened and gives `anthropics/claude-code-action` the issue body
-in its prompt, an API key and a token that can write issues. Anyone who can open an issue writes
-that text, and the agent acts on it while holding the key and can write text into issues that
-other workflows and agents read. Run `trust-path .` in a repository checkout to check its workflows.
+in its prompt, an API key and a token that can write issues. The last field shows how the workflow
+sets the agent up: `gate=anyone` because `allowed_non_write_users` is `*`, so the agent runs for
+users without write access, and `tools=action-default` because the workflow does not limit its
+tools. Anyone who can open an issue writes that text, and the agent acts on it while holding the
+key and can write text into issues that other workflows and agents read. Run `trust-path .` in a repository checkout to check its workflows.
 
 ## Documentation
 

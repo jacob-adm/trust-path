@@ -55,7 +55,7 @@ class PathTests(unittest.TestCase):
         self.assertEqual(code, 1)
         step = "anthropics/claude-code-action@v1"
         wf = ".github/workflows/triage.yml"
-        agent = "gate=write-access; tools=action-default"
+        agent = "gate=anyone; tools=action-default"
         self.assertEqual(recs, [
             ("issues:event text read by agent", wf, "triage", step,
              "agent:anthropics/claude-code-action", agent),
@@ -63,11 +63,14 @@ class PathTests(unittest.TestCase):
              agent),
             ("issues:event text read by agent", wf, "triage", step, "secrets.ANTHROPIC_API_KEY",
              agent),
+            ("issues:event text read by agent", wf, "triage", step, "secrets.GITHUB_TOKEN",
+             agent),
             ("issues:github.event.issue.body", wf, "triage", step,
              "agent:anthropics/claude-code-action", agent),
             ("issues:github.event.issue.body", wf, "triage", step, "permissions.issues:write", "-"),
             ("issues:github.event.issue.body", wf, "triage", step, "secrets.ANTHROPIC_API_KEY",
              "-"),
+            ("issues:github.event.issue.body", wf, "triage", step, "secrets.GITHUB_TOKEN", "-"),
         ])
 
     def test_reusable_workflow_input(self):

@@ -70,8 +70,8 @@ trust-path tests/fixtures/workflow_run_chain
 ```
 
 ```text
-pull_request@.github/workflows/ci.yml>workflow_run@.github/workflows/stage.yml>workflow_run:github.event.workflow_run.head_branch	.github/workflows/publish.yml	publish	Tag	environment:pypi
-pull_request@.github/workflows/ci.yml>workflow_run@.github/workflows/stage.yml>workflow_run:github.event.workflow_run.head_branch	.github/workflows/publish.yml	publish	Tag	permissions.id-token:write
+pull_request@.github/workflows/ci.yml>workflow_run@.github/workflows/stage.yml>workflow_run:github.event.workflow_run.head_branch	.github/workflows/publish.yml	publish	Tag	environment:pypi	-
+pull_request@.github/workflows/ci.yml>workflow_run@.github/workflows/stage.yml>workflow_run:github.event.workflow_run.head_branch	.github/workflows/publish.yml	publish	Tag	permissions.id-token:write	-
 ```
 
 `ci.yml` runs on pull requests, so a fork chooses the branch name. `stage.yml` runs on
