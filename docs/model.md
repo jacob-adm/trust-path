@@ -35,6 +35,7 @@ of the source field after the last `:`.
 | `checkout of pull request head` | `actions/checkout` with a `ref:` or `repository:` that names the pull request's head (`head.sha`, `head.ref`, `head_ref`, `head_sha`, `head_branch`, `head.repo`, `head_repository`, `merge_commit_sha`, `refs/pull/`). |
 | `fetch of pull request head` | A `run:` with `gh pr checkout`, `refs/pull/` or `pull/${{`. |
 | `artifact from upstream run` | In a `workflow_run` run, `actions/download-artifact` or `dawidd6/action-download-artifact`. |
+| `changed file names` | The step's `run:` or `with:` expands an output of an earlier step that lists the files a pull request changes (`tj-actions/changed-files`, `Ana06/get-changed-files`, `jitterbit/get-changed-files`). The pull request's author chooses those names. Outputs that are counts or true/false values are not entries, and neither is an output assigned to an environment variable. |
 | `event text read by agent` | An AI agent action (list below). These actions can read the triggering issue, comment or pull request themselves, through the event or their tools, so trust-path treats them as receiving untrusted text in any untrusted run. |
 
 Under `pull_request_review` and `pull_request_review_comment`, only the review and comment text

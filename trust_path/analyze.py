@@ -90,6 +90,14 @@ _CLAUDE_FLAGS = re.compile(
     r"(?:(?:\s+|=)(\"[^\"]*\"|'[^']*'|[^\s-]\S*))?", re.I)
 _CLAUDE_NAMES = {"allowedtools": "allowedTools", "disallowedtools": "disallowedTools"}
 
+# Actions whose outputs list the names of the files a pull request changes.
+# The author of the pull request chooses those names.
+FILENAME_ACTIONS = (
+    "ana06/get-changed-files",
+    "jitterbit/get-changed-files",
+    "tj-actions/changed-files",
+)
+
 # Actions that download artifacts from another workflow run.
 ARTIFACT_ACTIONS = ("actions/download-artifact", "dawidd6/action-download-artifact")
 
@@ -101,7 +109,7 @@ WRITE_SCOPES = ("actions", "contents", "discussions", "id-token", "issues", "pac
 
 _EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 _CONTEXT = re.compile(
-    r"(?<![\w.-])(github|inputs|secrets|env)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
+    r"(?<![\w.-])(github|inputs|secrets|env|steps)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
 
 
 def _norm(name):
@@ -432,6 +440,8 @@ class Repo(object):
         # Where untrusted input enters the job: (step index, source).
         entries = set()
         details = {}
+        listers = set(s["id"].lower() for s in steps if isinstance(s.get("id"), str)
+                      and _action(s.get("uses")) in FILENAME_ACTIONS)
         for i, step in enumerate(steps):
             variables = dict(shared, **tainted(step.get("env")))
             used = contexts([step.get("run"), step.get("with")])
@@ -441,6 +451,11 @@ class Repo(object):
                 if name.startswith("env."):
                     for origin in variables.get(name[4:].upper(), ()):
                         entries.add((i, origin))
+                part = name.lower().split(".")
+                if part[0] == "steps" and len(part) > 3 and part[1] in listers and \
+                        part[2] == "outputs" and not part[3].endswith("_count") and \
+                        not part[3].startswith(("any_", "only_")):
+                    entries.add((i, "changed file names"))
             action = _action(step.get("uses"))
             with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
             head = ctx.trigger not in _REVIEW
