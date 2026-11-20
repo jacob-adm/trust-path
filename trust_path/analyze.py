@@ -101,7 +101,7 @@ WRITE_SCOPES = ("actions", "contents", "discussions", "id-token", "issues", "pac
 
 _EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 _CONTEXT = re.compile(
-    r"(?<![\w.-])(github|inputs|secrets)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
+    r"(?<![\w.-])(github|inputs|secrets|env)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
 
 
 def _norm(name):
@@ -416,16 +416,31 @@ class Repo(object):
             job_sinks.add("environment:" + env)
         job_sinks |= allowed(secret_names(shared_env))
 
+        def tainted(env):
+            """Environment variable name -> the untrusted contexts its value
+            expands. A variable only carries the text as data; it becomes an
+            entry where a ${{ env.NAME }} expression pastes it into a step."""
+            out = {}
+            for key in sorted(env) if isinstance(env, dict) else ():
+                out[key.upper()] = untrusted(contexts(env[key]), ctx.trigger, ctx.tainted_inputs)
+            return out
+
+        shared = {}
+        for env in shared_env:
+            shared.update(tainted(env))
+
         # Where untrusted input enters the job: (step index, source).
         entries = set()
         details = {}
-        if steps:
-            for name in untrusted(contexts(shared_env), ctx.trigger, ctx.tainted_inputs):
-                entries.add((0, name))
         for i, step in enumerate(steps):
-            fields = [step.get("run"), step.get("with"), step.get("env")]
-            for name in untrusted(contexts(fields), ctx.trigger, ctx.tainted_inputs):
+            variables = dict(shared, **tainted(step.get("env")))
+            used = contexts([step.get("run"), step.get("with")])
+            for name in untrusted(used, ctx.trigger, ctx.tainted_inputs):
                 entries.add((i, name))
+            for name in used:
+                if name.startswith("env."):
+                    for origin in variables.get(name[4:].upper(), ()):
+                        entries.add((i, origin))
             action = _action(step.get("uses"))
             with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
             head = ctx.trigger not in _REVIEW

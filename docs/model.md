@@ -29,7 +29,7 @@ of the source field after the last `:`.
 
 | Source suffix | Meaning |
 | --- | --- |
-| a context name, such as `github.event.issue.title` | The step's `run:`, `with:` or `env:` uses this context in a `${{ }}` expression, and the trigger lets an outsider set it. The list is in `UNTRUSTED_CONTEXTS` in `trust_path/analyze.py`. A context in the workflow's or job's `env:` enters at the job's first step. |
+| a context name, such as `github.event.issue.title` | The step's `run:` or `with:` uses this context in a `${{ }}` expression, and the trigger lets an outsider set it. A context assigned to an environment variable in `env:` is not an entry by itself, because the script receives the text as data; it is an entry at a step whose `run:` or `with:` expands that variable with `${{ env.NAME }}`. The list is in `UNTRUSTED_CONTEXTS` in `trust_path/analyze.py`. A context in the workflow's or job's `env:` enters at the job's first step. |
 | `inputs.NAME` | In a called workflow, an input the caller set from untrusted input. |
 | `with.NAME` | A call to a reusable workflow in another repository with an input set from untrusted input. |
 | `checkout of pull request head` | `actions/checkout` with a `ref:` or `repository:` that names the pull request's head (`head.sha`, `head.ref`, `head_ref`, `head_sha`, `head_branch`, `head.repo`, `head_repository`, `merge_commit_sha`, `refs/pull/`). |
