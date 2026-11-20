@@ -19,10 +19,10 @@ trust-path --ref origin/main
 
 ## Output
 
-Each record is one line of five tab-separated fields:
+Each record is one line of six tab-separated fields:
 
 ```
-source	workflow	job	step	sink
+source	workflow	job	step	sink	detail
 ```
 
 | Field | Content |
@@ -32,12 +32,13 @@ source	workflow	job	step	sink
 | job | The job id. |
 | step | The step's `name:`, else its `id:`, else its `uses:`, else `step N` (counting from 1). For a call to a reusable workflow in another repository, the `uses:` value. |
 | sink | What untrusted input reaches: `secrets.NAME`, `permissions.SCOPE:write`, `permissions:default`, `environment:NAME`, `agent:OWNER/REPO` or `secrets:inherit`. |
+| detail | For a record that enters at, or ends in, an AI agent action: what the workflow sets on that action, as `gate=...` followed by its tool or sandbox settings. See [AI agent actions](model.md#ai-agent-actions). `-` for every other record. |
 
 Tabs and line breaks inside a field are replaced by spaces. Records are sorted and each appears
 once, so the same files always give the same output.
 
 `--json` writes the same records, in the same order, as a JSON array of objects with the keys
-`source`, `workflow`, `job`, `step` and `sink`.
+`source`, `workflow`, `job`, `step`, `sink` and `detail`.
 
 ## Exit status
 

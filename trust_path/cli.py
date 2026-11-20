@@ -7,11 +7,11 @@ import sys
 from . import __version__
 from .analyze import AnalysisError, Repo
 
-FIELDS = ("source", "workflow", "job", "step", "sink")
+FIELDS = ("source", "workflow", "job", "step", "sink", "detail")
 
 
 def _clean(text):
-    """Keep each record on one line with exactly five fields."""
+    """Keep each record on one line with exactly six fields."""
     return " ".join(str(text).replace("\t", " ").split())
 
 

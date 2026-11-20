@@ -30,14 +30,14 @@ class PathTests(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertEqual(recs, [(
             "pull_request_target:github.event.pull_request.title",
-            ".github/workflows/greet.yml", "greet", "Post greeting", "secrets.BOT_TOKEN")])
+            ".github/workflows/greet.yml", "greet", "Post greeting", "secrets.BOT_TOKEN", "-")])
 
     def test_head_checkout_reaches_later_secret(self):
         code, recs, _ = records("head_checkout")
         self.assertEqual(code, 1)
         self.assertEqual(recs, [(
             "pull_request_target:checkout of pull request head",
-            ".github/workflows/build.yml", "build", "Install", "secrets.NPM_TOKEN")])
+            ".github/workflows/build.yml", "build", "Install", "secrets.NPM_TOKEN", "-")])
 
     def test_workflow_run_chain_reaches_publish_job(self):
         code, recs, _ = records("workflow_run_chain")
@@ -45,9 +45,9 @@ class PathTests(unittest.TestCase):
         source = ("pull_request@.github/workflows/ci.yml>workflow_run@.github/workflows/stage.yml"
                   ">workflow_run:github.event.workflow_run.head_branch")
         self.assertEqual(recs, [
-            (source, ".github/workflows/publish.yml", "publish", "Tag", "environment:pypi"),
+            (source, ".github/workflows/publish.yml", "publish", "Tag", "environment:pypi", "-"),
             (source, ".github/workflows/publish.yml", "publish", "Tag",
-             "permissions.id-token:write"),
+             "permissions.id-token:write", "-"),
         ])
 
     def test_agent_given_issue_body_with_api_key(self):
@@ -55,15 +55,19 @@ class PathTests(unittest.TestCase):
         self.assertEqual(code, 1)
         step = "anthropics/claude-code-action@v1"
         wf = ".github/workflows/triage.yml"
+        agent = "gate=write-access; tools=action-default"
         self.assertEqual(recs, [
             ("issues:event text read by agent", wf, "triage", step,
-             "agent:anthropics/claude-code-action"),
-            ("issues:event text read by agent", wf, "triage", step, "permissions.issues:write"),
-            ("issues:event text read by agent", wf, "triage", step, "secrets.ANTHROPIC_API_KEY"),
+             "agent:anthropics/claude-code-action", agent),
+            ("issues:event text read by agent", wf, "triage", step, "permissions.issues:write",
+             agent),
+            ("issues:event text read by agent", wf, "triage", step, "secrets.ANTHROPIC_API_KEY",
+             agent),
             ("issues:github.event.issue.body", wf, "triage", step,
-             "agent:anthropics/claude-code-action"),
-            ("issues:github.event.issue.body", wf, "triage", step, "permissions.issues:write"),
-            ("issues:github.event.issue.body", wf, "triage", step, "secrets.ANTHROPIC_API_KEY"),
+             "agent:anthropics/claude-code-action", agent),
+            ("issues:github.event.issue.body", wf, "triage", step, "permissions.issues:write", "-"),
+            ("issues:github.event.issue.body", wf, "triage", step, "secrets.ANTHROPIC_API_KEY",
+             "-"),
         ])
 
     def test_reusable_workflow_input(self):
@@ -72,8 +76,8 @@ class PathTests(unittest.TestCase):
         source = "issue_comment@.github/workflows/on-comment.yml>workflow_call:inputs.text"
         wf = ".github/workflows/reply.yml"
         self.assertEqual(recs, [
-            (source, wf, "reply", "Reply", "permissions.pull-requests:write"),
-            (source, wf, "reply", "Reply", "secrets.token"),
+            (source, wf, "reply", "Reply", "permissions.pull-requests:write", "-"),
+            (source, wf, "reply", "Reply", "secrets.token", "-"),
         ])
 
     def test_safe_workflows_report_nothing(self):
@@ -89,7 +93,7 @@ class OutputTests(unittest.TestCase):
         code, out, _ = run("--json", os.path.join(FIXTURES, "agent"))
         self.assertEqual(code, 1)
         _, recs, _ = records("agent")
-        self.assertEqual([tuple(r[k] for k in ("source", "workflow", "job", "step", "sink"))
+        self.assertEqual([tuple(r[k] for k in ("source", "workflow", "job", "step", "sink", "detail"))
                           for r in json.loads(out)], recs)
 
     def test_json_empty(self):

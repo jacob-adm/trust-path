@@ -73,6 +73,25 @@ The actions trust-path treats as AI agents, each checked to exist on GitHub on 1
 
 Matching is on `owner/repo`, case-insensitive, at any version.
 
+### Agent detail
+
+A record whose source is `event text read by agent`, or whose sink is `agent:OWNER/REPO`, carries
+in its `detail` field what the workflow sets on that agent action. The values are the workflow's
+own settings, copied as written. They are not a judgement of whether the path can be exploited.
+
+| Part | Meaning |
+| --- | --- |
+| `gate=write-access` | `anthropics/claude-code-action` and `openai/codex-action` run only for users with write access unless an input opens them. That input (`allowed_non_write_users`, `allow-users`) is not set. A user with write access can still start the agent on text someone else wrote. |
+| `gate=anyone` | The input is `*`: any user can start the agent. |
+| `gate=listed-users` | The input names users. |
+| `gate=expression` | The input is a `${{ }}` expression, which trust-path does not evaluate. |
+| `gate=not-modelled` | Another agent action; trust-path does not know how it decides who may start it. |
+| `allowedTools=`, `disallowedTools=`, `permission-mode=`, `dangerously-skip-permissions` | The matching flags in `claude_args` of an Anthropic action. `tools=action-default` when none is set. `settings=set` when the `settings` input is used, which can also change permissions. |
+| `sandbox=`, `permission-profile=`, `safety-strategy=` | The matching inputs of `openai/codex-action`. `sandbox=action-default` when unset; `safety-strategy=drop-sudo` is the action's default. |
+
+The input names and defaults were read from each action's `action.yml` on 20 November 2026.
+Conditions in `if:` and checks done by earlier steps are not read.
+
 ## YAML
 
 trust-path reads workflows with its own reader for the YAML that workflows use: block mappings and
