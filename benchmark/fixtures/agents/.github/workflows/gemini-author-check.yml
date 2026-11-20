@@ -1,0 +1,16 @@
+# The action has no gate of its own; the job's condition tests the author.
+name: gemini-author-check
+on:
+  issue_comment:
+    types: [created]
+permissions:
+  id-token: write
+  issues: write
+jobs:
+  assist:
+    if: contains(fromJSON('["OWNER", "MEMBER", "COLLABORATOR"]'), github.event.comment.author_association)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: google-github-actions/run-gemini-cli@v0
+        with:
+          prompt: Help with issue ${{ github.event.issue.number }}.

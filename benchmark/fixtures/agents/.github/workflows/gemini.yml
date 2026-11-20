@@ -1,4 +1,4 @@
-# An agent action whose gate trust-path does not model.
+# The action has no gate of its own and the workflow adds none.
 name: gemini
 on:
   issue_comment:

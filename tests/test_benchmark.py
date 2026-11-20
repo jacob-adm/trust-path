@@ -43,7 +43,7 @@ class PureTests(unittest.TestCase):
         records = [rec("issues:github.event.issue.title"), rec("issues:event text read by agent")]
         self.assertEqual(bench.summarise(records, 1), {
             "records": 2, "refused": 1, "by_category": {"agent": 1, "expression": 1},
-            "agent_files_by_gate": {"none": 1}})
+            "agent_files_by_gate": {"unknown": 1}})
 
     def test_agent_gates_count_files(self):
         def agent(workflow, detail):
@@ -90,7 +90,7 @@ class LocalCorpusTests(unittest.TestCase):
                                os.path.join(tmp, "expected.json")])
         self.assertEqual(code, 0, out.getvalue())
         self.assertEqual(expected["agents"]["agent_files_by_gate"],
-                         {"anyone": 3, "not-modelled": 1, "write-access": 2})
+                         {"anyone": 3, "none": 2, "write-access": 2})
 
 
 class RunTests(unittest.TestCase):

@@ -2,13 +2,13 @@
   "agents": {
     "agent_files_by_gate": {
       "anyone": 3,
-      "not-modelled": 1,
+      "none": 2,
       "write-access": 2
     },
     "by_category": {
-      "agent": 20
+      "agent": 23
     },
-    "records": 20,
+    "records": 23,
     "refused": 0
   },
   "github-actions-goat": {
