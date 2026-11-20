@@ -14,3 +14,5 @@ jobs:
             Label this issue:
             ${{ github.event.issue.body }}
           anthropic_api_key: ${{ secrets.ANTHROPIC_API_KEY }}
+          github_token: ${{ secrets.GITHUB_TOKEN }}
+          allowed_non_write_users: "*"
