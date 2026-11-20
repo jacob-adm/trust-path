@@ -66,10 +66,47 @@ class AgentDetailTests(unittest.TestCase):
         self.assertEqual(agent("openai/codex-action@v1", "allow-users: ${{ vars.USERS }}"),
                          ["gate=expression; sandbox=action-default; safety-strategy=drop-sudo"])
 
-    def test_gate_not_modelled_for_other_actions(self):
-        self.assertEqual(agent("google-github-actions/run-gemini-cli@v0"), ["gate=not-modelled"])
+    def test_gate_of_other_actions(self):
+        self.assertEqual(agent("google-github-actions/run-gemini-cli@v0"), ["gate=none"])
+        self.assertEqual(agent("actions/ai-inference@v1"), ["gate=none"])
         self.assertEqual(agent("anthropics/claude-code-base-action@v1"),
-                         ["gate=not-modelled; tools=action-default"])
+                         ["gate=none; tools=action-default"])
+        self.assertEqual(agent("warpdotdev/oz-agent-action@v1"), ["gate=not-modelled"])
+
+    CONDITION = """
+        on: issue_comment
+        permissions:
+          id-token: write
+        jobs:
+          j:
+            runs-on: ubuntu-latest%s
+            steps:
+              - uses: google-github-actions/run-gemini-cli@v0%s
+        """
+
+    def conditions(self, job="", step=""):
+        job = job and "\n            if: " + job
+        step = step and "\n                if: " + step
+        return details(analyse(w=self.CONDITION % (job, step), detail=True))
+
+    def test_if_conditions_that_test_who_started_the_run(self):
+        self.assertEqual(self.conditions(), ["gate=none"])
+        self.assertEqual(self.conditions(
+            job="contains(fromJSON('[\"OWNER\",\"MEMBER\"]'), "
+                "github.event.comment.author_association)"),
+            ["gate=none; if=author_association"])
+        self.assertEqual(self.conditions(step="${{ github.actor == 'octocat' }}"),
+                         ["gate=none; if=actor"])
+        self.assertEqual(self.conditions(
+            job="github.event.sender.login == 'octocat'",
+            step="github.event.comment.author_association == 'OWNER'"),
+            ["gate=none; if=actor+author_association"])
+
+    def test_other_if_conditions_are_not_reported(self):
+        self.assertEqual(self.conditions(job="github.event_name == 'issue_comment'"),
+                         ["gate=none"])
+        self.assertEqual(self.conditions(step="contains(github.event.comment.body, '@bot')"),
+                         ["gate=none"])
 
     def test_claude_tool_flags(self):
         self.assertEqual(agent(

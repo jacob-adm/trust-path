@@ -85,6 +85,18 @@ AGENT_GATES = {
     "anthropics/claude-code-action": "allowed_non_write_users",
     "openai/codex-action": "allow-users",
 }
+# Agent actions with no input or check of their own for who starts them:
+# whoever can trigger the workflow starts the agent.
+AGENT_UNGATED = (
+    "actions/ai-inference",
+    "anthropics/claude-code-base-action",
+    "google-github-actions/run-gemini-cli",
+)
+# What an `if:` condition tests when it restricts who started the run.
+_IF_TESTS = (
+    ("actor", re.compile(r"github\.(triggering_)?actor\b|\b(sender|user)\.login\b")),
+    ("author_association", re.compile(r"\bauthor_association\b")),
+)
 _CLAUDE_FLAGS = re.compile(
     r"--(allowed-?tools|disallowed-?tools|permission-mode|dangerously-skip-permissions)"
     r"(?:(?:\s+|=)(\"[^\"]*\"|'[^']*'|[^\s-]\S*))?", re.I)
@@ -177,9 +189,11 @@ def _action(uses):
     return "/".join(uses.split("@")[0].split("/")[:2]).lower()
 
 
-def agent_detail(action, with_):
-    """What the workflow sets on an agent action: who may start it (gate)
-    and what it may do. Values are the workflow's own, not a judgement."""
+def agent_detail(action, with_, conditions=()):
+    """What the workflow sets on an agent action: who may start it (gate),
+    what the job's and step's `if:` conditions test about the person who
+    started the run, and what the agent may do. Values are the workflow's
+    own, not a judgement; conditions are not evaluated."""
     def text(key):
         return with_[key].strip() if isinstance(with_.get(key), str) else ""
 
@@ -189,7 +203,11 @@ def agent_detail(action, with_):
         parts.append("gate=" + ("write-access" if not gate else "anyone" if gate == "*"
                                 else "expression" if "${{" in gate else "listed-users"))
     else:
-        parts.append("gate=not-modelled")
+        parts.append("gate=none" if action in AGENT_UNGATED else "gate=not-modelled")
+    text_if = " ".join(c for c in conditions if isinstance(c, str))
+    tests = [name for name, pattern in _IF_TESTS if pattern.search(text_if)]
+    if tests:
+        parts.append("if=" + "+".join(tests))
     if action.startswith("anthropics/"):
         flags = []
         for m in _CLAUDE_FLAGS.finditer(text("claude_args")):
@@ -469,7 +487,7 @@ class Repo(object):
                 entries.add((i, "artifact from upstream run"))
             if action in AGENT_ACTIONS:
                 entries.add((i, "event text read by agent"))
-                details[i] = agent_detail(action, with_)
+                details[i] = agent_detail(action, with_, (job.get("if"), step.get("if")))
 
         for start, what in sorted(entries):
             source = "%s:%s" % (ctx.chain, what)

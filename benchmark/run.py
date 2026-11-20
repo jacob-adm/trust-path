@@ -48,7 +48,7 @@ def agent_gates(records):
     gates = collections.defaultdict(set)
     for r in records:
         if category(r["source"]) == "agent":
-            gate = r.get("detail", "").split(";")[0].replace("gate=", "") or "none"
+            gate = r.get("detail", "").split(";")[0].replace("gate=", "") or "unknown"
             gates[gate].add(os.path.basename(r["workflow"]))
     return dict((g, len(files)) for g, files in sorted(gates.items()))
 

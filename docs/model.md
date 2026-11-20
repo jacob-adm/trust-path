@@ -86,12 +86,15 @@ own settings, copied as written. They are not a judgement of whether the path ca
 | `gate=anyone` | The input is `*`: any user can start the agent. |
 | `gate=listed-users` | The input names users. |
 | `gate=expression` | The input is a `${{ }}` expression, which trust-path does not evaluate. |
+| `gate=none` | `actions/ai-inference`, `anthropics/claude-code-base-action` and `google-github-actions/run-gemini-cli` have no input or check of their own for who starts them: whoever can trigger the workflow starts the agent. |
 | `gate=not-modelled` | Another agent action; trust-path does not know how it decides who may start it. |
+| `if=author_association`, `if=actor`, `if=actor+author_association` | The job's or the step's `if:` condition tests the author's association with the repository (`author_association`) or a user name (`github.actor`, `github.triggering_actor`, `sender.login`, `user.login`). The condition is not evaluated: it may restrict who starts the agent, or another part of it may still let everyone through. |
 | `allowedTools=`, `disallowedTools=`, `permission-mode=`, `dangerously-skip-permissions` | The matching flags in `claude_args` of an Anthropic action. `tools=action-default` when none is set. `settings=set` when the `settings` input is used, which can also change permissions. |
 | `sandbox=`, `permission-profile=`, `safety-strategy=` | The matching inputs of `openai/codex-action`. `sandbox=action-default` when unset; `safety-strategy=drop-sudo` is the action's default. |
 
-The input names and defaults were read from each action's `action.yml` on 20 November 2026.
-Conditions in `if:` and checks done by earlier steps are not read.
+The input names and defaults were read from each action's `action.yml` on 20 November 2026. The
+actions listed under `gate=none` were checked the same day: no gating input in `action.yml` and no
+author or permission check found in their code. Checks done by earlier steps are not read.
 
 ## YAML
 

@@ -19,10 +19,11 @@ training repositories whose workflows are vulnerable on purpose:
 [step-security/github-actions-goat](https://github.com/step-security/github-actions-goat).
 `--corpus FILE` runs another list in the same format.
 
-The third entry, `fixtures/agents`, is a directory in this repository with seven workflows written
+The third entry, `fixtures/agents`, is a directory in this repository with eight workflows written
 for the benchmark. Each runs an AI agent action set up a different way: open to any user with no
 tool limits, open with tool limits, left at the action's default gate, in a read-only sandbox, an
-action whose gate trust-path does not model, and one that holds no credential and so has nothing
+action with no gate of its own (once bare, once behind an `if:` that tests the author), and one that
+holds no credential and so has nothing
 to report. They sit under `benchmark/`, not in the repository's own `.github/workflows`, so GitHub
 never runs them. `benchmark/agents-only.json` runs just this entry and needs no network.
 
@@ -42,7 +43,7 @@ gravy-overflow @ cbff1a67a804 (6 workflow files)
   `artifact` and `agent`.
 - **files with an agent path, by gate** counts the workflow files with an `agent` record under each
   gate value from the record's `detail` field, for example
-  `{'anyone': 3, 'not-modelled': 1, 'write-access': 2}` for `fixtures/agents`.
+  `{'anyone': 3, 'none': 2, 'write-access': 2}` for `fixtures/agents`.
 - **injection, by workflow file** counts the files where trust-path reports an `expression` or
   `head-code` record and the files where zizmor reports `template-injection`, run as
   `zizmor --offline --no-config --persona auditor`.
