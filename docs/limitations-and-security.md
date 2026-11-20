@@ -40,4 +40,4 @@
 ## YAML
 
 The reader covers the YAML that workflows use and refuses the rest with exit status 2; see
-[YAML](model.md#yaml). A workflow that uses anchors or aliases must be checked by another tool.
+[YAML](model.md#yaml). Anchors and aliases are read on block values and sequence items; an anchor on a mapping key or inside a flow collection is refused.

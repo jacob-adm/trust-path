@@ -3,12 +3,15 @@
 Supported: block mappings and sequences, plain, single-quoted and
 double-quoted scalars (also over several lines), literal (|) and folded (>)
 block scalars with chomping and indentation indicators, flow sequences and
-mappings, and comments.
+mappings, comments, and anchors (&name) with aliases (*name) on block
+values and sequence items.
 
-Every scalar is returned as a str; an empty value is None. YAML features
-outside the subset (anchors, aliases, tags, complex keys, merge keys,
-directives, several documents, tabs in indentation) raise YamlError instead
-of being guessed at.
+Every scalar is returned as a str; an empty value is None. An alias returns
+the anchored value itself, not a copy; a document whose aliases expand to
+more than MAX_ALIAS_NODES values is refused. YAML features outside the subset
+(tags, complex keys, merge keys, anchors on mapping keys or inside flow
+collections, directives, several documents, tabs in indentation) raise
+YamlError instead of being guessed at.
 """
 
 import re
@@ -26,6 +29,21 @@ _ESCAPES = {"0": "\0", "a": "\a", "b": "\b", "t": "\t", "\t": "\t", "n": "\n",
             "/": "/", "\\": "\\", "N": "\x85", "_": "\xa0", "L": " ",
             "P": " "}
 _HEX = {"x": 2, "u": 4, "U": 8}
+_ANCHOR = re.compile(r"[&*]([^\s\[\]{},]+)(?=\s|$)")
+MAX_ALIAS_NODES = 100000
+
+
+def _size(value, limit):
+    """Number of values in `value`, counting stops once it passes `limit`."""
+    count, todo = 0, [value]
+    while todo and count <= limit:
+        v = todo.pop()
+        count += 1
+        if isinstance(v, dict):
+            todo.extend(v.values())
+        elif isinstance(v, list):
+            todo.extend(v)
+    return count
 
 
 def load(text):
@@ -174,6 +192,8 @@ class _Parser(object):
             text = text[1:]
         self.lines = text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
         self.i = 0
+        self.anchors = {}
+        self.aliased = 0
 
     def err(self, message, n=None):
         raise YamlError((self.i if n is None else n) + 1, message)
@@ -240,13 +260,18 @@ class _Parser(object):
                 self.err("expected 'key: value'")
             key_text = body[:c].strip()
             if key_text[:1] in ("&", "*", "!"):
-                self.err("anchors, aliases and tags are not supported")
+                self.err("anchors, aliases and tags on mapping keys are not supported")
             key = _unquote(key_text, self.i + 1) if key_text[:1] in ("'", '"') else key_text
             if key == "<<":
                 self.err("merge keys are not supported")
             if key in result:
                 self.err("duplicate key %r" % key)
             rest = body[c + 1:]
+            # `key: &name` with the value on the following lines.
+            m = _ANCHOR.match(rest.strip())
+            anchor = None
+            if m and rest.strip()[0] == "&" and _strip_comment(rest.strip()[m.end():].strip()) == "":
+                anchor, rest = m.group(1), ""
             if _strip_comment(rest.strip()) == "":
                 self.i += 1
                 nxt = self.peek()
@@ -257,6 +282,8 @@ class _Parser(object):
                     result[key] = self.sequence(ind)
                 else:
                     result[key] = None
+                if anchor is not None:
+                    self.anchors[anchor] = result[key]
             else:
                 col = ind + c + 1 + (len(rest) - len(rest.lstrip(" ")))
                 result[key] = self.scalar_value(self.i, col, ind)
@@ -288,8 +315,10 @@ class _Parser(object):
         self.i = start
         text = self.lines[start][col:]
         c = text[:1]
-        if c in ("&", "*", "!"):
-            self.err("anchors, aliases and tags are not supported")
+        if c == "!":
+            self.err("tags are not supported")
+        if c in ("&", "*"):
+            return self.anchored(start, col, parent_indent, text)
         if c in ("|", ">"):
             return self.block_scalar(text, parent_indent)
         if c in ("'", '"'):
@@ -319,6 +348,33 @@ class _Parser(object):
             parts.pop()
         value = _fold(parts)
         return None if value in ("", "~", "null", "Null", "NULL") else value
+
+    def anchored(self, start, col, parent_indent, text):
+        """The value at an anchor (&name value) or an alias (*name)."""
+        m = _ANCHOR.match(text)
+        if not m:
+            self.err("expected a name after %r" % text[:1])
+        name, tail = m.group(1), text[m.end():]
+        if text[0] == "*":
+            if _strip_comment(tail.strip()) != "":
+                self.err("unexpected content after alias %r" % name)
+            if name not in self.anchors:
+                self.err("alias %r has no anchor before it" % name)
+            self.aliased += _size(self.anchors[name], MAX_ALIAS_NODES)
+            if self.aliased > MAX_ALIAS_NODES:
+                self.err("aliases expand to too many values")
+            self.i = start + 1
+            return self.anchors[name]
+        if _strip_comment(tail.strip()) == "":
+            self.i = start + 1
+            nxt = self.peek()
+            deeper = nxt is not None and _indent(nxt) > parent_indent
+            value = self.block(parent_indent + 1) if deeper else None
+        else:
+            value = self.scalar_value(
+                start, col + m.end() + len(tail) - len(tail.lstrip(" ")), parent_indent)
+        self.anchors[name] = value
+        return value
 
     def quoted(self, text):
         start = self.i

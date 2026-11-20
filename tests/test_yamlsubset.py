@@ -106,6 +106,36 @@ class SupportedTests(unittest.TestCase):
         self.assertEqual(y("a:\n  - |\n      x\n       y\n"), {"a": ["x\n y\n"]})
 
 
+class AnchorTests(unittest.TestCase):
+    def test_scalar(self):
+        self.assertEqual(load("a: &x 1\nb: *x\n"), {"a": "1", "b": "1"})
+        self.assertEqual(load("- &x a\n- *x # again\n"), ["a", "a"])
+        self.assertEqual(load("a: &x |\n  hi\nb: *x\n"), {"a": "hi\n", "b": "hi\n"})
+
+    def test_mapping_and_sequence_values(self):
+        self.assertEqual(load("a: &x\n  b: c\nd: *x\n"), {"a": {"b": "c"}, "d": {"b": "c"}})
+        self.assertEqual(load("a: &x # note\n  b: c\nd: *x\n"), {"a": {"b": "c"}, "d": {"b": "c"}})
+        self.assertEqual(load("a: &x\n- 1\n- 2\nb: *x\n"), {"a": ["1", "2"], "b": ["1", "2"]})
+        self.assertEqual(load("a: &x [1, 2]\nb: *x\n"), {"a": ["1", "2"], "b": ["1", "2"]})
+
+    def test_reused_step(self):
+        step = {"uses": "actions/checkout@v4", "with": {"ref": "main"}}
+        self.assertEqual(load(textwrap.dedent("""\
+            first:
+              - &checkout
+                uses: actions/checkout@v4
+                with:
+                  ref: main
+              - run: make
+            second:
+              - *checkout
+            """)), {"first": [step, {"run": "make"}], "second": [step]})
+
+    def test_anchor_can_be_redefined(self):
+        self.assertEqual(load("a: &x 1\nb: *x\nc: &x 2\nd: *x\n"),
+                         {"a": "1", "b": "1", "c": "2", "d": "2"})
+
+
 class SpecTests(unittest.TestCase):
     """Expected values from the examples in the YAML 1.2.2 specification."""
 
@@ -160,16 +190,25 @@ class RefusedTests(unittest.TestCase):
             y(text)
         self.assertEqual((cm.exception.line, cm.exception.message), (line, message))
 
-    def test_anchor_alias_tag(self):
-        msg = "anchors, aliases and tags are not supported"
-        self.refused("a: &x 1\n", 1, msg)
-        self.refused("a: 1\nb: *x\n", 2, msg)
-        self.refused("a: !!str 1\n", 1, msg)
-        self.refused("a:\n  - *x\n", 2, msg)
-        self.refused("- &x a\n", 1, msg)
-        self.refused("a: &x\n  b: c\n", 1, msg)
+    def test_tags_and_unsupported_anchor_positions(self):
+        self.refused("a: !!str 1\n", 1, "tags are not supported")
         self.refused("a: [&x b, *x]\n", 1, "anchors, aliases, tags and complex keys are not supported")
-        self.refused("&x a: b\n", 1, msg)
+        self.refused("&x a: b\n", 1, "anchors, aliases and tags on mapping keys are not supported")
+        self.refused("a: & 1\n", 1, "expected a name after '&'")
+
+    def test_alias_errors(self):
+        self.refused("a: 1\nb: *x\n", 2, "alias 'x' has no anchor before it")
+        self.refused("a:\n  - *x\n", 2, "alias 'x' has no anchor before it")
+        self.refused("a: &x 1\nb: *x y\n", 2, "unexpected content after alias 'x'")
+
+    def test_alias_expansion_is_bounded(self):
+        text = "a: &a [x, x, x, x, x, x, x, x, x, x]\n"
+        for i in range(8):
+            new, old = chr(98 + i), chr(97 + i)
+            text += "%s: &%s\n" % (new, new) + ("  - *%s\n" % old) * 10
+        with self.assertRaises(YamlError) as cm:
+            load(text)
+        self.assertEqual(cm.exception.message, "aliases expand to too many values")
 
     def test_other_constructs(self):
         self.refused("a: 1\n<<: {b: 2}\n", 2, "merge keys are not supported")

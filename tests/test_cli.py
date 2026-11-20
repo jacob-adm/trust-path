@@ -119,10 +119,9 @@ class OutputTests(unittest.TestCase):
 
 class ErrorTests(unittest.TestCase):
     def test_unsupported_yaml_is_refused(self):
-        code, out, err = run(os.path.join(FIXTURES, "anchors"))
+        code, out, err = run(os.path.join(FIXTURES, "tags"))
         self.assertEqual((code, out), (2, ""))
-        self.assertEqual(err, "trust-path: .github/workflows/a.yml: line 3: anchors, aliases and "
-                              "tags are not supported\n")
+        self.assertEqual(err, "trust-path: .github/workflows/a.yml: line 3: tags are not supported\n")
 
     def test_missing_reusable_workflow(self):
         code, out, err = run(os.path.join(FIXTURES, "missing_call"))
@@ -134,7 +133,7 @@ class ErrorTests(unittest.TestCase):
         self.addCleanup(shutil.rmtree, tmp)
         shutil.copytree(os.path.join(FIXTURES, "pr_title", ".github"), os.path.join(tmp, ".github"))
         wdir = os.path.join(tmp, ".github", "workflows")
-        for name, text in (("a.yml", "x: &a 1\n"), ("b.yml", "on: push\n")):
+        for name, text in (("a.yml", "x: !!str 1\n"), ("b.yml", "on: push\n")):
             with open(os.path.join(wdir, name), "w") as f:
                 f.write(text)
         code, out, err = run(tmp)
@@ -142,8 +141,7 @@ class ErrorTests(unittest.TestCase):
         self.assertEqual(out, run(os.path.join(FIXTURES, "pr_title"))[1])
         self.assertTrue(out)
         self.assertEqual(err.splitlines(), [
-            "trust-path: .github/workflows/a.yml: line 1: anchors, aliases and tags are not "
-            "supported",
+            "trust-path: .github/workflows/a.yml: line 1: tags are not supported",
             "trust-path: .github/workflows/b.yml: not a workflow (no 'jobs' mapping)"])
         code, out, _ = run("--json", tmp)
         self.assertEqual(code, 2)

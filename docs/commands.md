@@ -53,7 +53,7 @@ local reusable workflow that is not in the directory. trust-path still reads eve
 writes the paths it finds in them, then writes one line per refused file to standard error:
 
 ```
-trust-path: .github/workflows/a.yml: line 3: anchors, aliases and tags are not supported
+trust-path: .github/workflows/a.yml: line 3: tags are not supported
 ```
 
 A call to a refused reusable workflow is not followed, and a `workflow_run` trigger naming a
