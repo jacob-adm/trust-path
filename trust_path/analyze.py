@@ -1,6 +1,6 @@
 """Find paths from untrusted input to secrets and credentials in workflows.
 
-A path is reported as a Record(source, workflow, job, step, sink). See
+A path is reported as a Record(source, workflow, job, step, sink, detail). See
 docs/model.md for the rules this module implements.
 """
 
@@ -11,7 +11,7 @@ import subprocess
 
 from . import yamlsubset
 
-Record = collections.namedtuple("Record", "source workflow job step sink")
+Record = collections.namedtuple("Record", "source workflow job step sink detail")
 
 
 class AnalysisError(Exception):
@@ -78,6 +78,17 @@ AGENT_ACTIONS = (
     "openai/codex-action",
     "warpdotdev/oz-agent-action",
 )
+
+# The input by which an agent action lets users without write access start
+# it. Left empty, these actions run only for users with write access.
+AGENT_GATES = {
+    "anthropics/claude-code-action": "allowed_non_write_users",
+    "openai/codex-action": "allow-users",
+}
+_CLAUDE_FLAGS = re.compile(
+    r"--(allowed-?tools|disallowed-?tools|permission-mode|dangerously-skip-permissions)"
+    r"(?:(?:\s+|=)(\"[^\"]*\"|'[^']*'|[^\s-]\S*))?", re.I)
+_CLAUDE_NAMES = {"allowedtools": "allowedTools", "disallowedtools": "disallowedTools"}
 
 # Actions that download artifacts from another workflow run.
 ARTIFACT_ACTIONS = ("actions/download-artifact", "dawidd6/action-download-artifact")
@@ -156,6 +167,39 @@ def _action(uses):
     if not isinstance(uses, str) or uses.startswith(("docker://", "./")):
         return ""
     return "/".join(uses.split("@")[0].split("/")[:2]).lower()
+
+
+def agent_detail(action, with_):
+    """What the workflow sets on an agent action: who may start it (gate)
+    and what it may do. Values are the workflow's own, not a judgement."""
+    def text(key):
+        return with_[key].strip() if isinstance(with_.get(key), str) else ""
+
+    parts = []
+    if action in AGENT_GATES:
+        gate = text(AGENT_GATES[action])
+        parts.append("gate=" + ("write-access" if not gate else "anyone" if gate == "*"
+                                else "expression" if "${{" in gate else "listed-users"))
+    else:
+        parts.append("gate=not-modelled")
+    if action.startswith("anthropics/"):
+        flags = []
+        for m in _CLAUDE_FLAGS.finditer(text("claude_args")):
+            name = m.group(1).lower().replace("-tools", "tools")
+            name = _CLAUDE_NAMES.get(name, name)
+            if name == "dangerously-skip-permissions":
+                flags.append(name)
+            elif m.group(2):
+                flags.append("%s=%s" % (name, m.group(2).strip("\"'")))
+        parts.extend(sorted(set(flags)) or ["tools=action-default"])
+        if text("settings"):
+            parts.append("settings=set")
+    elif action == "openai/codex-action":
+        parts.append("sandbox=" + (text("sandbox") or "action-default"))
+        if text("permission-profile"):
+            parts.append("permission-profile=" + text("permission-profile"))
+        parts.append("safety-strategy=" + (text("safety-strategy") or "drop-sudo"))
+    return "; ".join(parts)
 
 
 def triggers_of(wf):
@@ -374,6 +418,7 @@ class Repo(object):
 
         # Where untrusted input enters the job: (step index, source).
         entries = set()
+        details = {}
         if steps:
             for name in untrusted(contexts(shared_env), ctx.trigger, ctx.tainted_inputs):
                 entries.add((0, name))
@@ -394,22 +439,25 @@ class Repo(object):
                 entries.add((i, "artifact from upstream run"))
             if action in AGENT_ACTIONS:
                 entries.add((i, "event text read by agent"))
+                details[i] = agent_detail(action, with_)
 
         for start, what in sorted(entries):
             source = "%s:%s" % (ctx.chain, what)
+            entry = details[start] if what == "event text read by agent" else "-"
             for sink in job_sinks:
-                records.add(Record(source, rel, job_id, _label(steps[start], start), sink))
+                records.add(Record(source, rel, job_id, _label(steps[start], start), sink, entry))
             for i in range(start, len(steps)):
                 step = steps[i]
                 held = allowed(secret_names([step.get("run"), step.get("with"),
                                              step.get("env")]))
                 for sink in held:
-                    records.add(Record(source, rel, job_id, _label(step, i), sink))
+                    records.add(Record(source, rel, job_id, _label(step, i), sink, entry))
                 action = _action(step.get("uses"))
                 credential = held or job_sinks & {"permissions.id-token:write"} or \
                     allowed(secret_names(shared_env))
                 if action in AGENT_ACTIONS and credential:
-                    records.add(Record(source, rel, job_id, _label(step, i), "agent:" + action))
+                    records.add(Record(source, rel, job_id, _label(step, i), "agent:" + action,
+                                       details[i]))
 
     def _call(self, rel, job_id, job, ctx, records, stack):
         uses = job["uses"]
@@ -434,7 +482,7 @@ class Repo(object):
                 for name in sorted(tainted):
                     for sink in sinks:
                         records.add(Record("%s:%s" % (ctx.chain, "with." + name), rel, job_id,
-                                           uses, sink))
+                                           uses, sink, "-"))
             return
         target = uses[2:].split("@")[0]
         if target not in self.workflows or target in stack:

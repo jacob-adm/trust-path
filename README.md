@@ -55,7 +55,7 @@ pip installs `trust-path` as a console script. Without installing, it runs from 
 4. **Collect what it reaches.** The entry step and every later step of the same job are reached.
    trust-path collects the secrets they use and the job's write permissions, `id-token: write`,
    environment and AI agent actions holding a credential.
-5. **Print one record per path.** Each record is `source`, `workflow`, `job`, `step` and `sink`,
+5. **Print one record per path.** Each record is `source`, `workflow`, `job`, `step`, `sink` and `detail`,
    tab-separated and sorted. Like `grep`, trust-path exits 1 when it finds a path, 0 when it finds
    none and 2 on an error, including any refused file.
 

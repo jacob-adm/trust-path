@@ -9,7 +9,9 @@ from trust_path.analyze import AnalysisError, Repo
 
 def analyse(**workflows):
     """Analyse a repository made of the given name=text workflow files and
-    return its records as (source, workflow, job, step, sink) tuples."""
+    return its records as (source, workflow, job, step, sink) tuples; with
+    detail=True, as (source, workflow, job, step, sink, detail) tuples."""
+    width = 6 if workflows.pop("detail", False) else 5
     tmp = tempfile.mkdtemp()
     try:
         wdir = os.path.join(tmp, ".github", "workflows")
@@ -17,9 +19,87 @@ def analyse(**workflows):
         for name, text in workflows.items():
             with open(os.path.join(wdir, name + ".yml"), "w") as f:
                 f.write(textwrap.dedent(text))
-        return [tuple(r) for r in Repo(tmp).analyse()]
+        return sorted(set(tuple(r)[:width] for r in Repo(tmp).analyse()))
     finally:
         shutil.rmtree(tmp)
+
+
+def details(recs):
+    return sorted(set(r[5] for r in recs))
+
+
+AGENT = """
+    on: issue_comment
+    permissions:
+      id-token: write
+    jobs:
+      j:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: %s
+            with:
+%s
+    """
+
+
+def agent(uses, *inputs):
+    lines = "\n".join("              " + line for line in inputs or ("x: y",))
+    return details(analyse(w=AGENT % (uses, lines), detail=True))
+
+
+class AgentDetailTests(unittest.TestCase):
+    def test_default_gate_is_write_access(self):
+        self.assertEqual(agent("anthropics/claude-code-action@v1"),
+                         ["gate=write-access; tools=action-default"])
+        self.assertEqual(agent("openai/codex-action@v1"),
+                         ["gate=write-access; sandbox=action-default; safety-strategy=drop-sudo"])
+
+    def test_gate_open_to_anyone(self):
+        self.assertEqual(agent("anthropics/claude-code-action@v1", 'allowed_non_write_users: "*"'),
+                         ["gate=anyone; tools=action-default"])
+        self.assertEqual(agent("openai/codex-action@v1", 'allow-users: "*"', "sandbox: read-only"),
+                         ["gate=anyone; sandbox=read-only; safety-strategy=drop-sudo"])
+
+    def test_gate_listed_users_and_expression(self):
+        self.assertEqual(agent("anthropics/claude-code-action@v1", "allowed_non_write_users: a,b"),
+                         ["gate=listed-users; tools=action-default"])
+        self.assertEqual(agent("openai/codex-action@v1", "allow-users: ${{ vars.USERS }}"),
+                         ["gate=expression; sandbox=action-default; safety-strategy=drop-sudo"])
+
+    def test_gate_not_modelled_for_other_actions(self):
+        self.assertEqual(agent("google-github-actions/run-gemini-cli@v0"), ["gate=not-modelled"])
+        self.assertEqual(agent("anthropics/claude-code-base-action@v1"),
+                         ["gate=not-modelled; tools=action-default"])
+
+    def test_claude_tool_flags(self):
+        self.assertEqual(agent(
+            "anthropics/claude-code-action@v1", "claude_args: |",
+            "  --permission-mode auto", '  --disallowedTools "WebFetch,Write"',
+            "  --allowed-tools=Read", "  --model some-model", "settings: s.json"),
+            ["gate=write-access; allowedTools=Read; disallowedTools=WebFetch,Write; "
+             "permission-mode=auto; settings=set"])
+        self.assertEqual(agent("anthropics/claude-code-action@v1",
+                               "claude_args: --dangerously-skip-permissions --max-turns 3"),
+                         ["gate=write-access; dangerously-skip-permissions"])
+
+    def test_codex_profile_and_strategy(self):
+        self.assertEqual(agent("openai/codex-action@v1", "permission-profile: triage",
+                               "safety-strategy: unsafe"),
+                         ["gate=write-access; sandbox=action-default; permission-profile=triage; "
+                          "safety-strategy=unsafe"])
+
+    def test_other_records_have_no_detail(self):
+        recs = analyse(detail=True, w="""
+            on: pull_request_target
+            jobs:
+              j:
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ github.event.pull_request.title }}"
+                    env:
+                      T: ${{ secrets.T }}
+            """)
+        self.assertEqual(details(recs), ["-"])
 
 
 def sinks(recs):
