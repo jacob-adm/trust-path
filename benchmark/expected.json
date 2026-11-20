@@ -1,0 +1,17 @@
+{
+  "github-actions-goat": {
+    "by_category": {
+      "head-code": 2
+    },
+    "records": 2,
+    "refused": 0
+  },
+  "gravy-overflow": {
+    "by_category": {
+      "expression": 52,
+      "head-code": 19
+    },
+    "records": 71,
+    "refused": 1
+  }
+}
