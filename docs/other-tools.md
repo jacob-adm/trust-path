@@ -61,8 +61,8 @@ git for-each-ref --format='%(refname:short)' refs/heads/agent/ | git surface mai
 
 ```text
 agent/ci:
-pull_request_target:github.event.pull_request.title	.github/workflows/triage.yml	label	Label	permissions:default
-pull_request_target:github.event.pull_request.title	.github/workflows/triage.yml	label	Label	secrets.TRIAGE_TOKEN
+pull_request_target:github.event.pull_request.title	.github/workflows/triage.yml	label	Label	permissions:default	-
+pull_request_target:github.event.pull_request.title	.github/workflows/triage.yml	label	Label	secrets.TRIAGE_TOKEN	-
 ```
 
 The pull request title, in a workflow triggered by `pull_request_target`, reaches the step that

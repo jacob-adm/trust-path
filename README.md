@@ -79,12 +79,12 @@ trust-path tests/fixtures/agent
 ```
 
 ```text
-issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action
-issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write
-issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY
-issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action
-issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write
-issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action	gate=write-access; tools=action-default
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write	gate=write-access; tools=action-default
+issues:event text read by agent	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY	gate=write-access; tools=action-default
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	agent:anthropics/claude-code-action	gate=write-access; tools=action-default
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	permissions.issues:write	-
+issues:github.event.issue.body	.github/workflows/triage.yml	triage	anthropics/claude-code-action@v1	secrets.ANTHROPIC_API_KEY	-
 ```
 
 The workflow runs when an issue is opened and gives `anthropics/claude-code-action` the issue body
