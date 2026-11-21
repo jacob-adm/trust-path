@@ -115,9 +115,11 @@ ARTIFACT_ACTIONS = ("actions/download-artifact", "dawidd6/action-download-artifa
 
 # Token scopes whose write access is a sink. issues and discussions count
 # because text written there is read by other workflows and AI agents that
-# run on issue and discussion events: injected text can travel on.
-WRITE_SCOPES = ("actions", "contents", "discussions", "id-token", "issues", "packages",
-                "pull-requests")
+# run on issue and discussion events: injected text can travel on. checks and
+# statuses count because a passing result can be posted for a required check
+# on any commit; security-events because code scanning alerts can be dismissed.
+WRITE_SCOPES = ("actions", "checks", "contents", "discussions", "id-token", "issues",
+                "packages", "pull-requests", "security-events", "statuses")
 
 _EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 _CONTEXT = re.compile(
