@@ -6,9 +6,15 @@ a pull request title, an issue body, a comment, a fork's branch name or code. A 
 input can reach: a secret, an OIDC token (`id-token: write`), a write permission of the workflow
 token, a deployment environment, or an AI agent action holding a credential.
 
-Attacks in 2026 used these paths. A crafted pull request title made AI agent actions leak their
-secrets, text in issues steered agents, and a worm read OIDC publish tokens from runner memory and
-published packages with them. trust-path shows where such paths exist, including paths that cross
+These paths are used. In May 2026 a self-propagating worm in TanStack's workflows read an OIDC
+token from the GitHub Actions runner's memory and published 84 malicious versions of TanStack
+packages with it ([postmortem](https://tanstack.com/blog/npm-supply-chain-compromise-postmortem)).
+Researchers showed that text in issue bodies, pull request descriptions and comments can make an AI
+agent action leak its secrets
+([Microsoft](https://www.microsoft.com/en-us/security/blog/2026/06/05/securing-ci-cd-in-agentic-world-claude-code-github-action-case))
+and that instructions hidden in an issue can make agents run commands
+([Cloud Security Alliance](https://labs.cloudsecurityalliance.org/research/csa-research-note-ai-github-actions-security-20260503-csa-st/)).
+trust-path shows where such paths exist, including paths that cross
 from one workflow to another through `workflow_run` and reusable workflows. It reports; it does not
 change workflows or decide what to do about a path.
 
