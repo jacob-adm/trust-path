@@ -343,10 +343,18 @@ class SinkTests(unittest.TestCase):
 
     def test_write_all(self):
         self.assertEqual(sinks(analyse(w=self.STEP % ("permissions: write-all", ""))), [
-            "permissions.actions:write", "permissions.contents:write",
-            "permissions.discussions:write", "permissions.id-token:write",
-            "permissions.issues:write", "permissions.packages:write",
-            "permissions.pull-requests:write"])
+            "permissions.actions:write", "permissions.checks:write",
+            "permissions.contents:write", "permissions.discussions:write",
+            "permissions.id-token:write", "permissions.issues:write",
+            "permissions.packages:write", "permissions.pull-requests:write",
+            "permissions.security-events:write", "permissions.statuses:write"])
+
+    def test_checks_statuses_and_security_events_write(self):
+        recs = analyse(w=self.STEP % (
+            "permissions: {checks: write, statuses: write, security-events: write, deployments: write}", ""))
+        self.assertEqual(sinks(recs), ["permissions.checks:write",
+                                       "permissions.security-events:write",
+                                       "permissions.statuses:write"])
 
     def test_issues_and_discussions_write(self):
         recs = analyse(w=self.STEP % ("permissions: {issues: write, discussions: write}", ""))
