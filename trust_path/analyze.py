@@ -69,6 +69,26 @@ HEAD_REFS = re.compile(
 # Shell commands that fetch pull request code.
 HEAD_FETCH = re.compile(r"\bgh\s+pr\s+checkout\b|\bpull/\$\{\{|\brefs/pull/")
 
+# Script lines that run the text of a variable as code (eval, sh -c) or write
+# it to GITHUB_ENV, which sets variables for later steps.
+SHELL_SINK = re.compile(
+    r"(?:^|[\s;&|(`])eval\s"
+    r"|(?:^|[\s;&|(`/])(?:ba|da|k|z)?sh\s+(?:-[a-z]+\s+)*-[a-z]*c\b"
+    r"|\$\{?GITHUB_ENV\b")
+_SHELL_VAR = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)")
+
+
+def shell_sink_variables(script):
+    """Names (upper-cased) of the variables a script evaluates or writes to
+    GITHUB_ENV."""
+    names = set()
+    if not isinstance(script, str):
+        return names
+    for line in script.replace("\\\n", " ").splitlines():
+        if SHELL_SINK.search(line):
+            names.update(m.upper() for m in _SHELL_VAR.findall(line))
+    return names
+
 # AI agent actions: given text, they act with the credentials they hold.
 AGENT_ACTIONS = (
     "actions/ai-inference",
@@ -450,7 +470,8 @@ class Repo(object):
         def tainted(env):
             """Environment variable name -> the untrusted contexts its value
             expands. A variable only carries the text as data; it becomes an
-            entry where a ${{ env.NAME }} expression pastes it into a step."""
+            entry where a ${{ env.NAME }} expression pastes it into a step, or
+            where the script evaluates it or writes it to GITHUB_ENV."""
             out = {}
             for key in sorted(env) if isinstance(env, dict) else ():
                 out[key.upper()] = untrusted(contexts(env[key]), ctx.trigger, ctx.tainted_inputs)
@@ -479,6 +500,9 @@ class Repo(object):
                         part[2] == "outputs" and not part[3].endswith("_count") and \
                         not part[3].startswith(("any_", "only_")):
                     entries.add((i, "changed file names"))
+            for name in shell_sink_variables(step.get("run")):
+                for origin in variables.get(name, ()):
+                    entries.add((i, origin))
             action = _action(step.get("uses"))
             with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
             head = ctx.trigger not in _REVIEW

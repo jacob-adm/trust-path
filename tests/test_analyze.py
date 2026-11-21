@@ -4,7 +4,7 @@ import tempfile
 import textwrap
 import unittest
 
-from trust_path.analyze import AnalysisError, Repo
+from trust_path.analyze import AnalysisError, Repo, shell_sink_variables
 
 
 def analyse(**workflows):
@@ -225,6 +225,21 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(analyse(w=self.ENV % ("true", 'echo "$TITLE"', "")), [])
         self.assertEqual(analyse(w=self.ENV % (
             "true", 'echo "$BODY"', "\n                  BODY: ${{ github.event.issue.body }}")), [])
+
+    def test_env_variable_evaluated_or_written_to_github_env_is_an_entry(self):
+        for script in ('eval "$TITLE"', "sh -c \"$TITLE\"", "bash -ec \"${TITLE}\"",
+                       'x; eval "echo $TITLE"', 'echo "T=$TITLE" >> "$GITHUB_ENV"',
+                       'echo "T=${TITLE}" >> $GITHUB_ENV'):
+            recs = analyse(w=self.ENV % ("true", script, ""))
+            self.assertEqual([(r[0], r[3], r[4]) for r in recs],
+                             [("issues:github.event.issue.title", "second", "secrets.T")], script)
+        # A variable set to a fixed value, or echoed, is still data.
+        for script in ('eval "$OTHER"', 'echo "$TITLE"', 'echo "T=$OTHER" >> "$GITHUB_ENV"',
+                       'evaluate "$TITLE"', 'flash -c "$TITLE"'):
+            self.assertEqual(analyse(w=self.ENV % ("true", script, "")), [], script)
+        # A continued line is one line.
+        self.assertEqual(shell_sink_variables('echo "T=$TITLE" \\\n  >> "$GITHUB_ENV"\necho "$B"'),
+                         {"TITLE", "GITHUB_ENV"})
 
     def test_env_expression_is_an_entry_where_it_is_expanded(self):
         recs = analyse(w=self.ENV % ("true", "echo ${{ env.TITLE }}", ""))
