@@ -1,7 +1,9 @@
 # trust-path
 
 trust-path lists the paths by which untrusted input can reach a secret or a publishing credential
-in a repository's GitHub Actions workflows. Untrusted input is text or code that anyone can supply:
+in a repository's GitHub Actions workflows, as far as the workflow files show them: repository
+settings and the code of the actions a step uses are outside what it reads (see
+[Limitations](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md)). Untrusted input is text or code that anyone can supply:
 a pull request title, an issue body, a comment, a fork's branch name or code. A sink is what that
 input can reach: a secret, an OIDC token (`id-token: write`), a write permission of the workflow
 token, a deployment environment, or an AI agent action holding a credential.
