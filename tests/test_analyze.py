@@ -259,6 +259,89 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(analyse(w=self.ENV % (
             "true", "echo ${{ env.TITLE }}", "\n                  TITLE: fixed")), [])
 
+    OUTPUTS = """
+        on: issues
+        permissions: {}
+        jobs:
+          use:
+            needs: [read]
+            runs-on: ubuntu-latest
+            steps:
+              - name: deploy
+                run: %s
+                env:
+                  T: ${{ secrets.T }}%s
+          read:
+            runs-on: ubuntu-latest
+            outputs:
+              t: %s
+            steps:
+              - id: s
+                run: %s
+                env:
+                  TITLE: ${{ github.event.issue.title }}
+              - id: fixed
+                run: echo "f=1" >> "$GITHUB_OUTPUT"
+        """
+    TITLE_TO_DEPLOY = [("issues:github.event.issue.title", ".github/workflows/w.yml", "use", "deploy", "secrets.T")]
+
+    def test_job_output_carries_untrusted_text_to_a_later_job(self):
+        # The variable is written to GITHUB_OUTPUT; the job output reads that step.
+        write = 'echo "t=$TITLE" >> "$GITHUB_OUTPUT"'
+        out = "${{ steps.s.outputs.t }}"
+        self.assertEqual(analyse(w=self.OUTPUTS % ('echo "${{ needs.read.outputs.t }}"', "", out, write)),
+                         self.TITLE_TO_DEPLOY)
+        # Through env: data until the script evaluates it.
+        env = "\n                  X: ${{ needs.read.outputs.t }}"
+        self.assertEqual(analyse(w=self.OUTPUTS % ('eval "$X"', env, out, write)), self.TITLE_TO_DEPLOY)
+        self.assertEqual(analyse(w=self.OUTPUTS % ('echo "$X"', env, out, write)), [])
+        # A job output set from the untrusted context directly.
+        self.assertEqual(analyse(w=self.OUTPUTS % (
+            'echo "${{ needs.read.outputs.t }}"', "", "${{ github.event.issue.title }}", "true")),
+            self.TITLE_TO_DEPLOY)
+
+    def test_job_output_from_fixed_text_is_not_an_entry(self):
+        use = 'echo "${{ needs.read.outputs.t }}"'
+        # The step only echoes the variable, or the output reads a step without untrusted input.
+        self.assertEqual(analyse(w=self.OUTPUTS % (use, "", "${{ steps.s.outputs.t }}", 'echo "$TITLE"')), [])
+        self.assertEqual(analyse(w=self.OUTPUTS % (
+            use, "", "${{ steps.fixed.outputs.f }}", 'echo "t=$TITLE" >> "$GITHUB_OUTPUT"')), [])
+
+    def test_job_output_reads_every_source_up_to_its_step(self):
+        # An injection in step s reaches every later step, so outputs of s and later steps carry it.
+        use = 'echo "${{ needs.read.outputs.t }}"'
+        for out in ("${{ steps.s.outputs.t }}", "${{ steps.fixed.outputs.f }}"):
+            self.assertEqual(analyse(w=self.OUTPUTS % (use, "", out, "echo ${{ github.event.issue.title }}")),
+                             self.TITLE_TO_DEPLOY, out)
+
+    def test_job_outputs_chain_through_jobs(self):
+        recs = analyse(w="""
+            on: issues
+            permissions: {}
+            jobs:
+              c:
+                needs: b
+                runs-on: ubuntu-latest
+                steps:
+                  - run: echo "${{ needs.b.outputs.u }}"
+                    env:
+                      T: ${{ secrets.T }}
+              b:
+                needs: [a]
+                runs-on: ubuntu-latest
+                outputs:
+                  u: ${{ needs.a.outputs.t }}
+                steps:
+                  - run: true
+              a:
+                runs-on: ubuntu-latest
+                outputs:
+                  t: ${{ github.event.issue.body }}
+                steps:
+                  - run: true
+            """)
+        self.assertEqual(recs, [("issues:github.event.issue.body", ".github/workflows/w.yml", "c", "step 1", "secrets.T")])
+
     FILES = """
         on: %s
         jobs:

@@ -78,16 +78,20 @@ SHELL_SINK = re.compile(
 _SHELL_VAR = re.compile(r"\$\{?([A-Za-z_][A-Za-z0-9_]*)")
 
 
-def shell_sink_variables(script):
+def shell_sink_variables(script, sink=None):
     """Names (upper-cased) of the variables a script evaluates or writes to
-    GITHUB_ENV."""
+    GITHUB_ENV; with `sink`, of those on lines that `sink` matches."""
     names = set()
     if not isinstance(script, str):
         return names
     for line in script.replace("\\\n", " ").splitlines():
-        if SHELL_SINK.search(line):
+        if (sink or SHELL_SINK).search(line):
             names.update(m.upper() for m in _SHELL_VAR.findall(line))
     return names
+
+
+# A script line that writes to GITHUB_OUTPUT, which sets the step's outputs.
+OUTPUT_SINK = re.compile(r"\$\{?GITHUB_OUTPUT\b")
 
 # AI agent actions: given text, they act with the credentials they hold.
 AGENT_ACTIONS = (
@@ -143,7 +147,7 @@ WRITE_SCOPES = ("actions", "checks", "contents", "discussions", "id-token", "iss
 
 _EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 _CONTEXT = re.compile(
-    r"(?<![\w.-])(github|inputs|secrets|env|steps)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
+    r"(?<![\w.-])(github|inputs|secrets|env|steps|needs)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
 
 
 def _norm(name):
@@ -355,6 +359,26 @@ def _dir_reader(root):
     return dict((name, lambda name=name: read(name)) for name in names)
 
 
+def _job_order(jobs):
+    """Job ids with every job after the jobs it needs; otherwise sorted.
+    A needs cycle or a missing job is ignored (GitHub refuses both)."""
+    order, done = [], set()
+
+    def visit(job_id, path):
+        if job_id in done or job_id in path or job_id not in jobs:
+            return
+        needs = jobs[job_id].get("needs") if isinstance(jobs[job_id], dict) else None
+        for need in [needs] if isinstance(needs, str) else (needs if isinstance(needs, list) else []):
+            if isinstance(need, str):
+                visit(need, path + (job_id,))
+        done.add(job_id)
+        order.append(job_id)
+
+    for job_id in sorted(jobs):
+        visit(job_id, ())
+    return order
+
+
 class Repo(object):
     """The readable workflows of a repository, from the directory or, with
     `ref`, from git at that ref. Files that cannot be read are listed in
@@ -440,14 +464,20 @@ class Repo(object):
 
     def _workflow(self, rel, ctx, records, stack):
         wf = self.workflows[rel]
-        for job_id in sorted(wf["jobs"]):
+        # needs.JOB.outputs.NAME (lower case) -> the untrusted sources it carries.
+        # Jobs run after the jobs they need, so their outputs are known first.
+        outputs = {}
+        for job_id in _job_order(wf["jobs"]):
             job = wf["jobs"][job_id]
             if isinstance(job.get("uses"), str):
                 self._call(rel, job_id, job, ctx, records, stack)
             else:
-                self._job(rel, wf, job_id, job, ctx, records)
+                outputs.update(self._job(rel, wf, job_id, job, ctx, records, outputs))
 
-    def _job(self, rel, wf, job_id, job, ctx, records):
+    def _job(self, rel, wf, job_id, job, ctx, records, needed=None):
+        """Record the paths in one job; return the job's outputs that carry
+        untrusted sources, keyed needs.JOB.outputs.NAME."""
+        needed = needed or {}
         steps = [s if isinstance(s, dict) else {} for s in job.get("steps") or []]
         shared_env = [wf.get("env"), job.get("env")]
 
@@ -474,7 +504,15 @@ class Repo(object):
             where the script evaluates it or writes it to GITHUB_ENV."""
             out = {}
             for key in sorted(env) if isinstance(env, dict) else ():
-                out[key.upper()] = untrusted(contexts(env[key]), ctx.trigger, ctx.tainted_inputs)
+                out[key.upper()] = sources(contexts(env[key]))
+            return out
+
+        def sources(names):
+            """Untrusted contexts among `names`, plus what the outputs of
+            needed jobs among them carry."""
+            out = untrusted(names, ctx.trigger, ctx.tainted_inputs)
+            for name in names:
+                out |= needed.get(name.lower(), set())
             return out
 
         shared = {}
@@ -484,12 +522,13 @@ class Repo(object):
         # Where untrusted input enters the job: (step index, source).
         entries = set()
         details = {}
+        written = {}  # step index -> sources its script writes to GITHUB_OUTPUT
         listers = set(s["id"].lower() for s in steps if isinstance(s.get("id"), str)
                       and _action(s.get("uses")) in FILENAME_ACTIONS)
         for i, step in enumerate(steps):
             variables = dict(shared, **tainted(step.get("env")))
             used = contexts([step.get("run"), step.get("with")])
-            for name in untrusted(used, ctx.trigger, ctx.tainted_inputs):
+            for name in sources(used):
                 entries.add((i, name))
             for name in used:
                 if name.startswith("env."):
@@ -503,6 +542,8 @@ class Repo(object):
             for name in shell_sink_variables(step.get("run")):
                 for origin in variables.get(name, ()):
                     entries.add((i, origin))
+            written[i] = set(origin for name in shell_sink_variables(step.get("run"), OUTPUT_SINK)
+                             for origin in variables.get(name, ()))
             action = _action(step.get("uses"))
             with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
             head = ctx.trigger not in _REVIEW
@@ -535,6 +576,24 @@ class Repo(object):
                 if action in AGENT_ACTIONS and credential:
                     records.add(Record(source, rel, job_id, _label(step, i), "agent:" + action,
                                        details[i]))
+
+        # A job output carries what reaches the step it reads: every source that
+        # entered at or before that step, as for the steps themselves, and the
+        # untrusted variables that step writes to GITHUB_OUTPUT.
+        index = dict((s["id"].lower(), i) for i, s in enumerate(steps) if isinstance(s.get("id"), str))
+        carried = {}
+        declared = job.get("outputs")
+        for key in sorted(declared) if isinstance(declared, dict) else ():
+            names = contexts(declared[key])
+            found = sources(names)
+            for name in names:
+                part = name.lower().split(".")
+                if part[0] == "steps" and len(part) > 2 and part[1] in index:
+                    found |= set(what for start, what in entries if start <= index[part[1]])
+                    found |= written[index[part[1]]]
+            if found:
+                carried["needs.%s.outputs.%s" % (job_id.lower(), key.lower())] = found
+        return carried
 
     def _call(self, rel, job_id, job, ctx, records, stack):
         uses = job["uses"]

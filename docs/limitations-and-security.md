@@ -23,8 +23,9 @@
   modelled for the AI agent actions listed in [How trust-path finds paths](model.md).
 - **Reusable workflows in other repositories.** It reports what a call passes to them, but does
   not follow the call.
-- **Data passed between jobs.** Job outputs (`needs.*.outputs`), artifacts within a run and caches
-  are not followed; untrusted input reaches only the job it enters.
+- **Data passed between jobs other than job outputs.** Job outputs are followed (see
+  [Job outputs](model.md#job-outputs)), except the outputs of a call to a reusable workflow.
+  Artifacts within a run and caches are not followed.
 - **Unsafe use of an environment variable.** Untrusted text assigned to a variable in `env:` is
   reported only where a `run:` line names the variable together with `eval`, `sh -c` (or `bash`,
   `dash`, `ksh`, `zsh`) or `GITHUB_ENV`. The check reads lines, not shell syntax: it misses a

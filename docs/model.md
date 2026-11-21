@@ -45,8 +45,8 @@ for fork pull requests get no secrets and a read-only token.
 ## What untrusted input reaches
 
 Once untrusted input enters a job at a step, trust-path treats that step and every later step of
-the same job as reached: they share one runner, one workspace and one token. Other jobs are not
-reached. The sink field names what is reached:
+the same job as reached: they share one runner, one workspace and one token. Other jobs are
+reached only through job outputs, described below. The sink field names what is reached:
 
 | Sink | Reported at |
 | --- | --- |
@@ -56,6 +56,18 @@ reached. The sink field names what is reached:
 | `environment:NAME` | The entry step, when the job has `environment:`. |
 | `agent:OWNER/REPO` | A reached AI agent action that holds a credential: a secret in its `with:` or `env:` or the job's `env:`, or `id-token: write`. |
 | `secrets:inherit` | `secrets: inherit` on a call to a reusable workflow in another repository. |
+
+### Job outputs
+
+A job output (`outputs:` on a job) carries untrusted input to the jobs that need it when its value
+is set from an untrusted context, from the output of a job it needs that carries untrusted input,
+or from a step output (`steps.ID.outputs.NAME`). A step output carries every source that entered
+the job at or before that step, because the step is reached, and every untrusted environment
+variable the step's `run:` writes to `GITHUB_OUTPUT` on the same line. In a later job,
+`${{ needs.JOB.outputs.NAME }}` is then an entry like the context it carries, with the original
+context as the source: at a step whose `run:` or `with:` expands it, or, through `env:`, at a step
+that expands, evaluates or writes the variable to `GITHUB_ENV`. Outputs pass through any number of
+jobs. The outputs of a call to a reusable workflow are not followed.
 
 For a call to a reusable workflow in another repository, which trust-path cannot read, the step
 field is the `uses:` value, and the records list the secrets and permissions the call passes when
