@@ -25,9 +25,12 @@
   not follow the call.
 - **Data passed between jobs.** Job outputs (`needs.*.outputs`), artifacts within a run and caches
   are not followed; untrusted input reaches only the job it enters.
-- **Unsafe use of an environment variable.** Untrusted text assigned to a variable in `env:` is not
-  reported, because a script that uses the variable quoted receives it as data. A script that
-  passes the variable to `eval` or `sh -c`, or writes it to `GITHUB_ENV`, is not detected.
+- **Unsafe use of an environment variable.** Untrusted text assigned to a variable in `env:` is
+  reported only where a `run:` line names the variable together with `eval`, `sh -c` (or `bash`,
+  `dash`, `ksh`, `zsh`) or `GITHUB_ENV`. The check reads lines, not shell syntax: it misses a
+  variable copied to another variable first, or passed to a script or another interpreter that
+  evaluates it, and it reports a variable on such a line even when it is a safe positional argument
+  (`sh -c 'echo "$1"' _ "$TITLE"`).
 - **Indirect flows inside a job.** Values written to `GITHUB_ENV`, `GITHUB_OUTPUT` or files are not
   tracked one by one. Instead, every step after the entry step in the same job counts as reached.
 - **Conditions.** `if:` conditions, branch filters and `types:` filters are not evaluated, so a
