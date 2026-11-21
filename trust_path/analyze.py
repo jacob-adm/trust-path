@@ -336,7 +336,8 @@ def _dir_reader(root):
 class Repo(object):
     """The readable workflows of a repository, from the directory or, with
     `ref`, from git at that ref. Files that cannot be read are listed in
-    `refused` as sorted (file, reason) pairs and left out."""
+    `refused` as sorted (file, reason) pairs and left out. A job that calls a
+    missing local workflow is listed there too, but its file is still read."""
 
     def __init__(self, root, ref=None):
         self.root = root
@@ -358,19 +359,21 @@ class Repo(object):
                 refused[rel] = str(e)
             except (OSError, UnicodeDecodeError) as e:
                 refused[rel] = str(e)
-        # A call to a local reusable workflow that does not exist refuses the
-        # caller; a call to one that was refused is skipped when analysing.
+        for rel in refused:
+            self.workflows.pop(rel, None)
+        # A call to a local reusable workflow that does not exist is named like
+        # a refused file, but only that job is skipped; the caller's other jobs
+        # are still analysed. A call to one that was refused is skipped silently.
+        missing = []
         for rel in sorted(self.workflows):
             for job_id, job in sorted(self.workflows[rel]["jobs"].items()):
                 uses = job.get("uses")
                 if isinstance(uses, str) and uses.startswith("./"):
                     target = uses[2:].split("@")[0]
                     if target not in self.workflows and target not in refused:
-                        refused[rel] = "job %r calls %s, which is not in %s" % (
-                            job_id, uses, ".github/workflows")
-        for rel in refused:
-            self.workflows.pop(rel, None)
-        self.refused = sorted(refused.items())
+                        missing.append((rel, "job %r calls %s, which is not in %s" % (
+                            job_id, uses, ".github/workflows")))
+        self.refused = sorted(list(refused.items()) + missing)
 
     def name_of(self, rel):
         name = self.workflows[rel].get("name")

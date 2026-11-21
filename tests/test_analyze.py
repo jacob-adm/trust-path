@@ -560,16 +560,24 @@ class ErrorTests(unittest.TestCase):
             (".github/workflows/j.yml", "job 'a' is not a mapping"),
             (".github/workflows/s.yml", "steps of job 'a' are not a list")])
 
-    def test_missing_call_refuses_caller_only(self):
+    def test_missing_call_is_named_and_the_callers_other_jobs_still_analysed(self):
         call = """
             on: issues
             jobs:
+              b:
+                uses: ./.github/workflows/lost.yml
               c:
                 uses: ./.github/workflows/gone.yml
+              d:
+                steps:
+                  - run: echo "${{ github.event.issue.body }}"
         """
-        self.assertEqual(refused(call=call, ok="on: push\njobs: {}\n"), [(
-            ".github/workflows/call.yml",
-            "job 'c' calls ./.github/workflows/gone.yml, which is not in .github/workflows")])
+        self.assertEqual(refused(call=call, ok="on: push\njobs: {}\n"), [
+            (".github/workflows/call.yml",
+             "job 'b' calls ./.github/workflows/lost.yml, which is not in .github/workflows"),
+            (".github/workflows/call.yml",
+             "job 'c' calls ./.github/workflows/gone.yml, which is not in .github/workflows")])
+        self.assertEqual(sinks(analyse(call=call)), ["permissions:default"])
 
     def test_call_into_refused_workflow_is_skipped(self):
         call = """
