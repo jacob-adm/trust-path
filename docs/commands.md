@@ -49,9 +49,11 @@ once, so the same files always give the same output.
 | 2 | Error: `DIR` is not a directory, or, with `--ref`, not a git repository or `REF` is not a commit; or at least one workflow file was refused. Paths found in the other files are still written. |
 
 A workflow file is refused when it cannot be read (with `--ref`, also when it is a symbolic link), uses YAML trust-path does not read, is not a
-workflow (no `jobs:` mapping, a job that is not a mapping, steps that are not a list), or calls a
-local reusable workflow that is not in the directory. trust-path still reads every other file and
-writes the paths it finds in them, then writes one line per refused file to standard error:
+workflow (no `jobs:` mapping, a job that is not a mapping, steps that are not a list). A job that
+calls a local reusable workflow that is not in the directory is treated the same way, except that
+only that call is skipped: the other jobs in its file are still read. trust-path still reads every
+other file and writes the paths it finds in them, then writes one line per refused file or missing
+call to standard error:
 
 ```
 trust-path: .github/workflows/a.yml: line 3: tags are not supported
