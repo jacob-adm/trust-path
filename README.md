@@ -37,6 +37,12 @@ and it treats AI agent actions as sinks. See [Using it with other tools](https:/
 
 ## Install
 
+From PyPI:
+
+```
+pip install trust-path
+```
+
 From a clone:
 
 ```
@@ -45,7 +51,7 @@ cd trust-path
 pip install .
 ```
 
-pip installs `trust-path` as a console script. Without installing, it runs from a clone as
+Either way pip installs `trust-path` as a console script. Without installing, it runs from a clone as
 `python3 -m trust_path`.
 
 ## How it works
