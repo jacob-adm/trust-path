@@ -73,6 +73,31 @@ For a call to a reusable workflow in another repository, which trust-path cannot
 field is the `uses:` value, and the records list the secrets and permissions the call passes when
 one of its inputs is set from untrusted input.
 
+### The Actions cache
+
+A run of a `pull_request_target`, `issue_comment`, `workflow_run` or other untrusted trigger
+belongs to the default branch, so the caches its jobs save can be restored by later runs on that
+branch. When such a job checks out or fetches pull request code (the head-code entries above),
+the cache steps that follow the entry can save whatever that code leaves behind. trust-path then
+follows the cache to every job, in a workflow triggered by `push`, `schedule`,
+`workflow_dispatch`, `release`, `merge_group` or `repository_dispatch`, that uses the same cache
+step. That job's credentials are the sinks: its permissions, environment and secrets, and the
+secrets of the cache step and every later step. The step field is the cache step, the source is
+`TRIGGER@WRITER>cache:ENTRY`, and the detail is `cache step NAME`.
+
+A cache step is `actions/cache` (save, restore or both), a setup action with a `cache` input
+(`actions/setup-node`, `setup-python`, `setup-go`, `setup-java`, `setup-dotnet`,
+`ruby/setup-ruby`), or any other action except `actions/checkout`, the artifact and Pages
+actions, `actions/github-script` and `actions/labeler`. trust-path does not read an action's
+code, and a shared setup action is where projects usually keep their caches. Two steps share a
+cache when they use the same action (owner, repository and path, ignoring `@ref`); the cache
+keys are not compared.
+
+This is the path of the TanStack worm of May 2026: `bundle-size.yml` ran fork code under
+`pull_request_target`, the shared setup action saved the poisoned cache, and `release.yml`
+restored it on a push to `main` with `id-token: write`. The benchmark runs trust-path on
+TanStack/router at the commit before the attack.
+
 ## AI agent actions
 
 The actions trust-path treats as AI agents, each checked to exist on GitHub on 19 November 2026:

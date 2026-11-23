@@ -699,3 +699,75 @@ class ErrorTests(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+CACHE_WRITER = """
+    on: pull_request_target
+    permissions:
+      contents: read
+    jobs:
+      bench:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+            with:
+              ref: refs/pull/${{ github.event.pull_request.number }}/merge
+          - uses: %s
+          - run: npm run build
+"""
+
+CACHE_READER = """
+    on:
+      %s:
+        branches: [main]
+    permissions:
+      id-token: write
+    jobs:
+      release:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+          - uses: %s
+          - run: npm publish
+"""
+
+
+class CacheTest(unittest.TestCase):
+    """Untrusted pull request code that can save a cache, restored by a later
+    default-branch run that holds credentials (the TanStack worm, May 2026)."""
+
+    def cache_records(self, writer_step, reader_step, trigger="push"):
+        recs = analyse(bench=CACHE_WRITER % writer_step,
+                       release=CACHE_READER % (trigger, reader_step), detail=True)
+        return [r for r in recs if ">cache:" in r[0]]
+
+    def test_shared_setup_action_reaches_release_credentials(self):
+        recs = self.cache_records("org/config/.github/setup@main",
+                                  "org/config/.github/setup@main")
+        self.assertEqual(recs, [(
+            "pull_request_target@.github/workflows/bench.yml>cache:checkout of pull request head",
+            ".github/workflows/release.yml", "release", "org/config/.github/setup@main",
+            "permissions.id-token:write", "cache step org/config/.github/setup")])
+
+    def test_actions_cache_and_setup_with_cache_input(self):
+        self.assertTrue(self.cache_records("actions/cache@v4", "actions/cache/restore@v4"))
+        node = "actions/setup-node@v4\n            with:\n              cache: npm"
+        self.assertTrue(self.cache_records(node, node))
+
+    def test_setup_without_cache_input_is_not_a_cache_step(self):
+        self.assertEqual(self.cache_records("actions/setup-node@v4", "actions/setup-node@v4"), [])
+
+    def test_different_steps_do_not_share_a_cache(self):
+        self.assertEqual(self.cache_records("org/a/setup@main", "org/b/setup@main"), [])
+
+    def test_reader_must_be_a_default_branch_run(self):
+        self.assertEqual(self.cache_records("org/config/.github/setup@main",
+                                            "org/config/.github/setup@main",
+                                            trigger="pull_request"), [])
+
+    def test_no_pull_request_code_no_cache_path(self):
+        writer = (CACHE_WRITER % "org/config/.github/setup@main").replace(
+            "            with:\n              ref: refs/pull/${{ github.event.pull_request.number }}/merge\n",
+            "")
+        recs = analyse(bench=writer, release=CACHE_READER % ("push", "org/config/.github/setup@main"))
+        self.assertEqual([r for r in recs if ">cache:" in r[0]], [])

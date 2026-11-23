@@ -13,13 +13,16 @@ workflow code. zizmor is optional; without it the comparison is skipped.
 
 ## What it runs on
 
-`benchmark/corpus.json` lists each repository and the commit it is read at. The two listed are
-training repositories whose workflows are vulnerable on purpose:
+`benchmark/corpus.json` lists each repository and the commit it is read at. Two are training
+repositories whose workflows are vulnerable on purpose:
 [messypoutine/gravy-overflow](https://github.com/messypoutine/gravy-overflow) and
-[step-security/github-actions-goat](https://github.com/step-security/github-actions-goat).
+[step-security/github-actions-goat](https://github.com/step-security/github-actions-goat). The
+third is [TanStack/router](https://github.com/TanStack/router) at `b1c061a`, the commit on `main`
+before the May 2026 worm, whose path ran through the Actions cache (see
+[The Actions cache](model.md#the-actions-cache)).
 `--corpus FILE` runs another list in the same format.
 
-The third entry, `fixtures/agents`, is a directory in this repository with eight workflows written
+The fourth entry, `fixtures/agents`, is a directory in this repository with eight workflows written
 for the benchmark. Each runs an AI agent action set up a different way: open to any user with no
 tool limits, open with tool limits, left at the action's default gate, in a read-only sandbox, an
 action with no gate of its own (once bare, once behind an `if:` that tests the author), and one that

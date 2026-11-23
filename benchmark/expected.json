@@ -27,5 +27,13 @@
     },
     "records": 71,
     "refused": 1
+  },
+  "router": {
+    "agent_files_by_gate": {},
+    "by_category": {
+      "cache": 9
+    },
+    "records": 9,
+    "refused": 0
   }
 }

@@ -22,10 +22,11 @@ change workflows or decide what to do about a path.
 
 [zizmor](https://github.com/zizmorcore/zizmor) and [poutine](https://github.com/boostsecurityio/poutine)
 check many more things. They report an untrusted input, a broad secret or a broad permission at the
-place in a file where it appears. trust-path adds three things: it pairs each source with the
+place in a file where it appears. trust-path adds four things: it pairs each source with the
 secret, permission or environment it reaches; it follows a source from one workflow to the next
-through `workflow_run` chains and local reusable workflows; and it treats AI agent actions as
-sinks. See [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
+through `workflow_run` chains and local reusable workflows; it follows pull request code through
+the Actions cache to the release and push jobs that restore it, the path of the TanStack worm;
+and it treats AI agent actions as sinks. See [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
 
 ## Requirements
 

@@ -8,6 +8,10 @@
     "commit": "4da23c8602b4589bacdf7de77240113e02cdb884"
   },
   {
+    "url": "https://github.com/TanStack/router",
+    "commit": "b1c061aff9185cdf5fdc08c0136382a9dce0302f"
+  },
+  {
     "path": "fixtures/agents"
   }
 ]

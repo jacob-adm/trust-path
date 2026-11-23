@@ -208,6 +208,38 @@ def secret_names(value):
     return names
 
 
+# The Actions cache. A job that runs pull request code where the run belongs to the
+# default branch (pull_request_target, issue_comment, workflow_run, ...) can save
+# caches that a later push or release run restores. Caches are matched by the step
+# that saves and restores them, not by key: the same `uses:` in both jobs.
+CACHE_SETUP_ACTIONS = ("actions/setup-node", "actions/setup-python", "actions/setup-go",
+                       "actions/setup-java", "actions/setup-dotnet", "ruby/setup-ruby")
+NO_CACHE_ACTIONS = ("actions/checkout", "actions/upload-artifact", "actions/download-artifact",
+                    "actions/github-script", "actions/labeler", "actions/upload-pages-artifact",
+                    "actions/deploy-pages", "actions/configure-pages")
+CACHE_READER_TRIGGERS = ("push", "schedule", "workflow_dispatch", "release", "merge_group",
+                         "repository_dispatch")
+
+
+def cache_step(step):
+    """The `uses:` (lower case, without @ref) of a step that can save or restore the
+    Actions cache, or None. That is actions/cache, a setup action with a `cache`
+    input, or any other action except a few that do not use the cache: trust-path
+    does not read an action's code, and a shared setup action is where caches
+    usually are."""
+    uses = step.get("uses")
+    if not isinstance(uses, str) or uses.startswith("docker://"):
+        return None
+    name = uses.split("@")[0].lower()
+    action = _action(uses)
+    if action in NO_CACHE_ACTIONS:
+        return None
+    if action in CACHE_SETUP_ACTIONS:
+        with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
+        return name if with_.get("cache") else None
+    return "actions/cache" if action == "actions/cache" else name
+
+
 def _action(uses):
     """owner/repo of a `uses:` value, lower-cased; '' for docker:// and ./"""
     if not isinstance(uses, str) or uses.startswith(("docker://", "./")):
@@ -460,7 +492,65 @@ class Repo(object):
         for rel in sorted(self.workflows):
             for ctx in self.contexts_for(rel):
                 self._workflow(rel, ctx, records, ())
+        self._cache(records)
         return sorted(records)
+
+    def _cache(self, records):
+        """Paths through the Actions cache: a job that checks out or fetches pull
+        request code in an untrusted run, and a job in a push, release or other
+        default-branch run that uses the same cache step afterwards."""
+        writers = []  # (source, workflow, job, cache step names)
+        for rel in sorted(self.workflows):
+            for ctx in self.contexts_for(rel):
+                if ctx.trigger in _REVIEW:
+                    continue
+                for job_id, job in sorted(self.workflows[rel]["jobs"].items()):
+                    steps = [x if isinstance(x, dict) else {} for x in job.get("steps") or []]
+                    for i, step in enumerate(steps):
+                        with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
+                        what = None
+                        if _action(step.get("uses")) == "actions/checkout" and any(
+                                isinstance(with_.get(k), str) and HEAD_REFS.search(with_[k])
+                                for k in ("ref", "repository")):
+                            what = "checkout of pull request head"
+                        elif isinstance(step.get("run"), str) and HEAD_FETCH.search(step["run"]):
+                            what = "fetch of pull request head"
+                        if what:
+                            names = set(filter(None, (cache_step(x) for x in steps[i + 1:])))
+                            if names:
+                                writers.append(("%s@%s>cache:%s" % (ctx.chain, rel, what),
+                                                rel, job_id, names))
+                            break
+        if not writers:
+            return
+        for rel in sorted(self.workflows):
+            wf = self.workflows[rel]
+            if not set(triggers_of(wf)) & set(CACHE_READER_TRIGGERS):
+                continue
+            for job_id, job in sorted(wf["jobs"].items()):
+                steps = [x if isinstance(x, dict) else {} for x in job.get("steps") or []]
+                perms = job["permissions"] if "permissions" in job else wf.get("permissions")
+                sinks = _permissions(perms)
+                env = job.get("environment")
+                env = env.get("name") if isinstance(env, dict) else env
+                if isinstance(env, str):
+                    sinks.add("environment:" + env)
+                sinks |= secret_names([wf.get("env"), job.get("env")])
+                for source, wrel, wjob, names in writers:
+                    if (wrel, wjob) == (rel, job_id):
+                        continue
+                    for i, step in enumerate(steps):
+                        name = cache_step(step)
+                        if name not in names:
+                            continue
+                        held = set(sinks)
+                        for later in steps[i:]:
+                            held |= secret_names([later.get("run"), later.get("with"),
+                                                  later.get("env")])
+                        for sink in held:
+                            records.add(Record(source, rel, job_id, _label(step, i), sink,
+                                               "cache step " + name))
+                        break
 
     def _workflow(self, rel, ctx, records, stack):
         wf = self.workflows[rel]
