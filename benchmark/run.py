@@ -27,6 +27,8 @@ _WORKFLOW = re.compile(r"workflows/([\w.-]+\.ya?ml)")
 def category(source):
     """The kind of entry a trust-path source field names."""
     what = source.rsplit(":", 1)[-1]
+    if ">cache:" in source:
+        return "cache"
     if what == "event text read by agent":
         return "agent"
     if what.endswith("of pull request head"):

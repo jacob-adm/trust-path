@@ -25,7 +25,11 @@
   not follow the call.
 - **Data passed between jobs other than job outputs.** Job outputs are followed (see
   [Job outputs](model.md#job-outputs)), except the outputs of a call to a reusable workflow.
-  Artifacts within a run and caches are not followed.
+  Artifacts within a run are not followed. Caches are followed from a job that runs pull request
+  code to a default-branch job that uses the same cache step (see
+  [The Actions cache](model.md#the-actions-cache)); cache keys are not compared, and pull request
+  code that writes the cache without a cache step in its job, for example through the runner's
+  cache token, is not modelled.
 - **Unsafe use of an environment variable.** Untrusted text assigned to a variable in `env:` is
   reported only where a `run:` line names the variable together with `eval`, `sh -c` (or `bash`,
   `dash`, `ksh`, `zsh`) or `GITHUB_ENV`. The check reads lines, not shell syntax: it misses a
