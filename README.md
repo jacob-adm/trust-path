@@ -79,8 +79,8 @@ Either way pip installs `trust-path` as a console script. Without installing, it
 ## Commands
 
 ```
-trust-path [--json] DIR
-trust-path [--json] --ref REF [DIR]
+trust-path [--json | --audit-json] DIR
+trust-path [--json | --audit-json] --ref REF [DIR]
 ```
 
 `--json` writes the records as a JSON array. `--ref REF` reads the workflows from git at a branch,
