@@ -5,7 +5,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "trust-path"
-version = "0.7.0"
+version = "0.8.0"
 description = "List the paths by which untrusted input can reach secrets and publishing credentials in GitHub Actions workflows."
 readme = "README.md"
 requires-python = ">=3.9"
