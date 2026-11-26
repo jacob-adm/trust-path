@@ -247,6 +247,40 @@ def _action(uses):
     return "/".join(uses.split("@")[0].split("/")[:2]).lower()
 
 
+_STEP_OUTPUT = re.compile(r"\bsteps\.([A-Za-z_][\w-]*)\.outputs\.")
+
+
+def head_checkouts(steps):
+    """Indexes of the actions/checkout steps whose `ref:` or `repository:` selects
+    the pull request's head, written out or carried by the output of an earlier
+    step: an action other than actions/checkout given a head value in `with:`,
+    or a script line that writes one, directly or through a variable from the
+    step's `env:`, to GITHUB_OUTPUT."""
+    carriers, out = set(), set()
+
+    def head(text):
+        return isinstance(text, str) and (HEAD_REFS.search(text) is not None or any(
+            m.lower() in carriers for m in _STEP_OUTPUT.findall(text)))
+
+    for i, step in enumerate(steps):
+        with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
+        if _action(step.get("uses")) == "actions/checkout":
+            if any(head(with_.get(k)) for k in ("ref", "repository")):
+                out.add(i)
+            continue
+        if not isinstance(step.get("id"), str):
+            continue
+        env = step.get("env") if isinstance(step.get("env"), dict) else {}
+        head_vars = set(k.upper() for k, v in env.items() if head(v))
+        run = step.get("run") if isinstance(step.get("run"), str) else ""
+        lines = [l for l in run.replace("\\\n", " ").splitlines() if OUTPUT_SINK.search(l)]
+        if any(head(v) for v in with_.values()) or any(
+                head(l) or head_vars & set(m.upper() for m in _SHELL_VAR.findall(l))
+                for l in lines):
+            carriers.add(step["id"].lower())
+    return out
+
+
 def agent_detail(action, with_, conditions=()):
     """What the workflow sets on an agent action: who may start it (gate),
     what the job's and step's `if:` conditions test about the person who
@@ -506,12 +540,10 @@ class Repo(object):
                     continue
                 for job_id, job in sorted(self.workflows[rel]["jobs"].items()):
                     steps = [x if isinstance(x, dict) else {} for x in job.get("steps") or []]
+                    checkouts = head_checkouts(steps)
                     for i, step in enumerate(steps):
-                        with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
                         what = None
-                        if _action(step.get("uses")) == "actions/checkout" and any(
-                                isinstance(with_.get(k), str) and HEAD_REFS.search(with_[k])
-                                for k in ("ref", "repository")):
+                        if i in checkouts:
                             what = "checkout of pull request head"
                         elif isinstance(step.get("run"), str) and HEAD_FETCH.search(step["run"]):
                             what = "fetch of pull request head"
@@ -613,6 +645,7 @@ class Repo(object):
         entries = set()
         details = {}
         written = {}  # step index -> sources its script writes to GITHUB_OUTPUT
+        checkouts = head_checkouts(steps)
         listers = set(s["id"].lower() for s in steps if isinstance(s.get("id"), str)
                       and _action(s.get("uses")) in FILENAME_ACTIONS)
         for i, step in enumerate(steps):
@@ -637,9 +670,7 @@ class Repo(object):
             action = _action(step.get("uses"))
             with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
             head = ctx.trigger not in _REVIEW
-            if head and action == "actions/checkout" and any(
-                    isinstance(with_.get(k), str) and HEAD_REFS.search(with_[k])
-                    for k in ("ref", "repository")):
+            if head and i in checkouts:
                 entries.add((i, "checkout of pull request head"))
             if head and isinstance(step.get("run"), str) and HEAD_FETCH.search(step["run"]):
                 entries.add((i, "fetch of pull request head"))
