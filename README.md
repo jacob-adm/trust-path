@@ -118,6 +118,7 @@ key and can write text into issues that other workflows and agents read. Run `tr
 - [How trust-path finds paths](https://github.com/jacob-adm/trust-path/blob/main/docs/model.md): sources, entry points, sinks, the AI agent action
   list and the YAML subset.
 - [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md): output fields, JSON, exit status and an example across workflows.
+- [Running it in CI](https://github.com/jacob-adm/trust-path/blob/main/docs/ci.md): a tested GitHub Actions workflow that fails when a pull request adds a path, and a pre-commit hook.
 - [Limitations and security](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md): what trust-path does not see, read or do.
 - [Benchmark](https://github.com/jacob-adm/trust-path/blob/main/docs/benchmark.md): a repeatable run on pinned public workflows, with a
   per-file comparison against zizmor
