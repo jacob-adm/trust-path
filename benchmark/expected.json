@@ -28,12 +28,44 @@
     "records": 71,
     "refused": 1
   },
+  "kubernetes-ingress-controller": {
+    "agent_files_by_gate": {},
+    "by_category": {
+      "expression": 1,
+      "head-code": 20
+    },
+    "records": 21,
+    "refused": 0
+  },
+  "nx": {
+    "agent_files_by_gate": {
+      "write-access": 1
+    },
+    "by_category": {
+      "agent": 24,
+      "expression": 3
+    },
+    "records": 27,
+    "refused": 0
+  },
   "router": {
     "agent_files_by_gate": {},
     "by_category": {
       "cache": 9
     },
     "records": 9,
+    "refused": 0
+  },
+  "sonar-findbugs": {
+    "agent_files_by_gate": {},
+    "by_category": {},
+    "records": 0,
+    "refused": 0
+  },
+  "ultralytics": {
+    "agent_files_by_gate": {},
+    "by_category": {},
+    "records": 0,
     "refused": 0
   }
 }

@@ -12,6 +12,22 @@
     "commit": "b1c061aff9185cdf5fdc08c0136382a9dce0302f"
   },
   {
+    "url": "https://github.com/nrwl/nx",
+    "commit": "c9163491799add7532dd4234729cba8a519bb30f"
+  },
+  {
+    "url": "https://github.com/ultralytics/ultralytics",
+    "commit": "21162bd870444550286983a601afbfb142f4c198"
+  },
+  {
+    "url": "https://github.com/spotbugs/sonar-findbugs",
+    "commit": "e240bc1aca68337b2b40e100fb24552d27eeb8cc"
+  },
+  {
+    "url": "https://github.com/Kong/kubernetes-ingress-controller",
+    "commit": "792ce603e54e4ef1fc651ec5db09ccca11098b60"
+  },
+  {
     "path": "fixtures/agents"
   }
 ]
