@@ -1,0 +1,402 @@
+[
+  {
+    "url": "https://github.com/sindresorhus/awesome",
+    "commit": "bc98e517ddca672f55f9857d714fc3ea3c3540b2"
+  },
+  {
+    "url": "https://github.com/public-apis/public-apis",
+    "commit": "9fb3bdb62643400aaebee03a2ecce0cd1ec934eb"
+  },
+  {
+    "url": "https://github.com/morluto/rea",
+    "commit": "aa78851b8565b6724efe8a68c134ba22bc8678e4"
+  },
+  {
+    "url": "https://github.com/freeCodeCamp/freeCodeCamp",
+    "commit": "18b0b76b7409e6929075dc88a50571776a55e5d8"
+  },
+  {
+    "url": "https://github.com/EbookFoundation/free-programming-books",
+    "commit": "53ea9c736e54178c7a4d64ea3a1c8fc51b185723"
+  },
+  {
+    "url": "https://github.com/openclaw/openclaw",
+    "commit": "d62da751d96c89c7eb27dd4bba20e5fbd6b1e8ce"
+  },
+  {
+    "url": "https://github.com/nilbuild/developer-roadmap",
+    "commit": "d7c81a366086afe563a4da9cd86a6be0c8f4cfd8"
+  },
+  {
+    "url": "https://github.com/jwasham/coding-interview-university",
+    "commit": "2399df2f688ba9fafe11c399cc067d7270921bb1"
+  },
+  {
+    "url": "https://github.com/vinta/awesome-python",
+    "commit": "4c3cb15dc695e95ae64add86b9994add8277f323"
+  },
+  {
+    "url": "https://github.com/mattpocock/skills",
+    "commit": "6f7f7831a625f040a8e06a0e7954826b87ce775a"
+  },
+  {
+    "url": "https://github.com/affaan-m/ECC",
+    "commit": "4adeee6732a12d1540f49a4d50a38ce8c97f9a53"
+  },
+  {
+    "url": "https://github.com/practical-tutorials/project-based-learning",
+    "commit": "8ebaf25f31a276beb157bfd1c1f2f33148c40d07"
+  },
+  {
+    "url": "https://github.com/deepseek-ai/deepseek-harness",
+    "commit": "4b399c39a6d1479cd84ca591b4d7c88e24d38a96"
+  },
+  {
+    "url": "https://github.com/NousResearch/hermes-agent",
+    "commit": "04be1bc06ba9fb3a7326679b0036bb65daaeda85"
+  },
+  {
+    "url": "https://github.com/react/react",
+    "commit": "edae846a9a17442c00429f2b15375afbfa0376c9"
+  },
+  {
+    "url": "https://github.com/anomalyco/opencode",
+    "commit": "314842df119544845441fe6f7a3dec0bba857624"
+  },
+  {
+    "url": "https://github.com/TheAlgorithms/Python",
+    "commit": "30507bbe41397065728167fb09aa820f9fce8dc7"
+  },
+  {
+    "url": "https://github.com/vuejs/vue",
+    "commit": "9e88707940088cb1f4cd7dd210c9168a50dc347c"
+  },
+  {
+    "url": "https://github.com/n8n-io/n8n",
+    "commit": "a8c029a00387fb73ffcadd799c8e2450cd3ce249"
+  },
+  {
+    "url": "https://github.com/ossu/computer-science",
+    "commit": "8f8272b1d378d31494240aa1d667aa6b045c6552"
+  },
+  {
+    "url": "https://github.com/yt-dlp/yt-dlp",
+    "commit": "da452a569fb3d04091468d920f9b9e68512e0373"
+  },
+  {
+    "url": "https://github.com/firecrawl/firecrawl",
+    "commit": "68291b7a8c27d60b848a58f26e271be808912735"
+  },
+  {
+    "url": "https://github.com/tensorflow/tensorflow",
+    "commit": "4a59c878a3a7118405e7981b73483dc06aa3319e"
+  },
+  {
+    "url": "https://github.com/DietrichGebert/ponytail",
+    "commit": "ebd8654c2c627f721eb8f9c0d1bd4090a29f9e10"
+  },
+  {
+    "url": "https://github.com/microsoft/markitdown",
+    "commit": "ed178952a6672abdfd35b5f9e76a80b6cefc086e"
+  },
+  {
+    "url": "https://github.com/trekhleb/javascript-algorithms",
+    "commit": "85293e3e2b88f4d2ce330d956b139cf628aa1e82"
+  },
+  {
+    "url": "https://github.com/avelino/awesome-go",
+    "commit": "2520247d1857f331faacf527e09e538f1166efc9"
+  },
+  {
+    "url": "https://github.com/microsoft/vscode",
+    "commit": "49be3d14a4d52d382d237ce24805658537a74f2f"
+  },
+  {
+    "url": "https://github.com/ultraworkers/claw-code",
+    "commit": "ecd697f9f253ef2b23f403a096b43479bfb6c585"
+  },
+  {
+    "url": "https://github.com/ohmyzsh/ohmyzsh",
+    "commit": "1eebae3a3f2071b1502211547791e23495bbfb42"
+  },
+  {
+    "url": "https://github.com/Significant-Gravitas/AutoGPT",
+    "commit": "0a0e0111fa9bca0bce3f932dfdde7c77338c96be"
+  },
+  {
+    "url": "https://github.com/ollama/ollama",
+    "commit": "8ae8acb81afba9c3c67adf08190964eb7d1207ef"
+  },
+  {
+    "url": "https://github.com/CyC2018/CS-Notes",
+    "commit": "cb9f180fb26da7b7100fde250a5dd137455b3a02"
+  },
+  {
+    "url": "https://github.com/flutter/flutter",
+    "commit": "ed05e125a496f9f18235e67db895f5efa38332a2"
+  },
+  {
+    "url": "https://github.com/f/prompts.chat",
+    "commit": "e13e5af345056e9a32526260ecdcbd79acaff098"
+  },
+  {
+    "url": "https://github.com/github/gitignore",
+    "commit": "5e329a286aeb62cf9f7ffa6cf8721c4c3caae5b4"
+  },
+  {
+    "url": "https://github.com/twbs/bootstrap",
+    "commit": "ace67b724759f376250f6ac0a64c7b386a27f86f"
+  },
+  {
+    "url": "https://github.com/msitarzewski/agency-agents",
+    "commit": "8ae6164602c95ca78828b148b9052460ee426885"
+  },
+  {
+    "url": "https://github.com/huggingface/transformers",
+    "commit": "762cbe1a32c8c69f8a942a1249ad7320084989b1"
+  },
+  {
+    "url": "https://github.com/AUTOMATIC1111/stable-diffusion-webui",
+    "commit": "82a973c04367123ae98bd9abdf80d9eda9b910e2"
+  },
+  {
+    "url": "https://github.com/langgenius/dify",
+    "commit": "df053963e41fdce5f60acdece73d5d28d9bbf2fd"
+  },
+  {
+    "url": "https://github.com/clash-verge-rev/clash-verge-rev",
+    "commit": "8fe3cc1fe3327e6981e82ec745b1ee09e9e0b84f"
+  },
+  {
+    "url": "https://github.com/Snailclimb/JavaGuide",
+    "commit": "992dae31eade2a34ba8dbbbcf5ed9de5511325ec"
+  },
+  {
+    "url": "https://github.com/open-webui/open-webui",
+    "commit": "926f826eaef6179c092a936eede6c7363e425975"
+  },
+  {
+    "url": "https://github.com/farion1231/cc-switch",
+    "commit": "de14050163aca0d8341c0b66f25c8af2d65e268a"
+  },
+  {
+    "url": "https://github.com/anthropics/claude-code",
+    "commit": "9587741f62205d168459b1be9441fdb901a1b482"
+  },
+  {
+    "url": "https://github.com/langflow-ai/langflow",
+    "commit": "6c9aea6f5d5f47a76a25e8e3e1b4779a4f83d522"
+  },
+  {
+    "url": "https://github.com/Genymobile/scrcpy",
+    "commit": "c939183a7cdca4599cee337e60bc0e147b6c9828"
+  },
+  {
+    "url": "https://github.com/nextlevelbuilder/ui-ux-pro-max-skill",
+    "commit": "a0d04109f4193a04ec6959549cd735d95ecaa90a"
+  },
+  {
+    "url": "https://github.com/Graphify-Labs/graphify",
+    "commit": "02c27dc246cd7bc359d0f4acaf53a3fce595bc1e"
+  },
+  {
+    "url": "https://github.com/github/spec-kit",
+    "commit": "f2010547121b3351e4923fe467205079e4593a32"
+  },
+  {
+    "url": "https://github.com/langchain-ai/langchain",
+    "commit": "30c4e38d71c2fdf6af474e0bb21832491aaa983e"
+  },
+  {
+    "url": "https://github.com/Comfy-Org/ComfyUI",
+    "commit": "8b0f107157b58f9ec79a19fb3182e78cb30f0a23"
+  },
+  {
+    "url": "https://github.com/airbnb/javascript",
+    "commit": "8ed19247bef145e3cc41b24a02dd1fe6d9b5e681"
+  },
+  {
+    "url": "https://github.com/harry0703/MoneyPrinterTurbo",
+    "commit": "ff0d5f30693f78c31fc3fda36bfbbe8d8eebda98"
+  },
+  {
+    "url": "https://github.com/Shubhamsaboo/awesome-llm-apps",
+    "commit": "14c5f8ff0094659f321801385d2b52ccc65fea3b"
+  },
+  {
+    "url": "https://github.com/iptv-org/iptv",
+    "commit": "cd80937377d708ee6f3980b947b890932384b4ad"
+  },
+  {
+    "url": "https://github.com/vercel/next.js",
+    "commit": "fec0d9f14f6c3e6da62e012a211ede09780f2bbc"
+  },
+  {
+    "url": "https://github.com/yangshun/tech-interview-handbook",
+    "commit": "e1d28e8886c0b6ff3e50da991ce0e895134ddc59"
+  },
+  {
+    "url": "https://github.com/garrytan/gstack",
+    "commit": "e6dd567349e85506127c2f4cf69a0392923c032c"
+  },
+  {
+    "url": "https://github.com/ytdl-org/youtube-dl",
+    "commit": "bc069d2bb40bcbc5bdfdf352ca15bf586c7792cb"
+  },
+  {
+    "url": "https://github.com/microsoft/PowerToys",
+    "commit": "d6d60a0dcef4f75f3342e3085aac0d5d71832372"
+  },
+  {
+    "url": "https://github.com/stablyai/orca",
+    "commit": "676cbc9b53cd454fe1a0df61cc5c3f02a5647cb1"
+  },
+  {
+    "url": "https://github.com/openai/codex",
+    "commit": "8727186a0a0e097f5e4496ba830f5d59c235b88c"
+  },
+  {
+    "url": "https://github.com/ggml-org/llama.cpp",
+    "commit": "b671865c7bd44c8c2d4709b5f707bd55f7f612fd"
+  },
+  {
+    "url": "https://github.com/excalidraw/excalidraw",
+    "commit": "dabd83c4aa6b9e42d0dd0a42be62200eb8e3cce9"
+  },
+  {
+    "url": "https://github.com/krahets/hello-algo",
+    "commit": "d5342f4ece1d5d6e480fe29a1a84ede449fe7a3e"
+  },
+  {
+    "url": "https://github.com/rustdesk/rustdesk",
+    "commit": "a0c0963c483fc8f1aeed4547787d1673adcb583c"
+  },
+  {
+    "url": "https://github.com/Chalarangelo/30-seconds-of-code",
+    "commit": "bd756f8b2283a38560efe83cb30af38324d4e9e9"
+  },
+  {
+    "url": "https://github.com/shadcn-ui/ui",
+    "commit": "0e5b2e621a9ee4cf6a604bbe6c5c0d5b70561eb4"
+  },
+  {
+    "url": "https://github.com/react/react-native",
+    "commit": "c3b3eaa37842f6e3cd876978d21ad390a7beb68b"
+  },
+  {
+    "url": "https://github.com/Hack-with-Github/Awesome-Hacking",
+    "commit": "440486fd08b0a0d9ad9a041a0bb234dcdf65dee2"
+  },
+  {
+    "url": "https://github.com/microsoft/generative-ai-for-beginners",
+    "commit": "e45c369a8c76bdae831cb5a172d36a6a0fc3a6a2"
+  },
+  {
+    "url": "https://github.com/electron/electron",
+    "commit": "b5e057bafe526dea89ee79d024da6bce638dbe18"
+  },
+  {
+    "url": "https://github.com/nodejs/node",
+    "commit": "4325ce0a57a3d03d0e3559db294917074ef42e6f"
+  },
+  {
+    "url": "https://github.com/earendil-works/pi",
+    "commit": "8d9408574325a12e2e34898bb8fa22784120e479"
+  },
+  {
+    "url": "https://github.com/TauricResearch/TradingAgents",
+    "commit": "121265d18d467ac717f7af99cb0d669c15d2e73c"
+  },
+  {
+    "url": "https://github.com/JuliusBrussee/caveman",
+    "commit": "e74a11ccdb38b98d15c9f9545787c907dd15f0ab"
+  },
+  {
+    "url": "https://github.com/rust-lang/rust",
+    "commit": "86e8c946f12c16ad26be9e4813cec57232290d99"
+  },
+  {
+    "url": "https://github.com/browser-use/browser-use",
+    "commit": "94784c1f7ecb6b0a5f565b7f9fba59e395b7e048"
+  },
+  {
+    "url": "https://github.com/Leonxlnx/taste-skill",
+    "commit": "d1a2bb41d927083ac7118f60cfc9cdf711810ea0"
+  },
+  {
+    "url": "https://github.com/2dust/v2rayN",
+    "commit": "fe9b0b16cd151fbad9752a4b9c8922e11530fc77"
+  },
+  {
+    "url": "https://github.com/godotengine/godot",
+    "commit": "8f2e46bca3c1cca8f3b759a0eaf67e44082b81a4"
+  },
+  {
+    "url": "https://github.com/addyosmani/agent-skills",
+    "commit": "e997ac5b9a74eab332d5e9793bb38a38c8cfdd74"
+  },
+  {
+    "url": "https://github.com/immich-app/immich",
+    "commit": "e9bb59a6eb2db484c3e4fc4bed57329de8881d42"
+  },
+  {
+    "url": "https://github.com/thedotmack/claude-mem",
+    "commit": "9b3b78dfa53f80e7c9c447b9269ceda255ee99d9"
+  },
+  {
+    "url": "https://github.com/mrdoob/three.js",
+    "commit": "940edbc5bd982d1cd73721d4c156f70a1806bd10"
+  },
+  {
+    "url": "https://github.com/jaywcjlove/awesome-mac",
+    "commit": "b4a7bba366d143fc7cc161b620ecaa059d3ce4a5"
+  },
+  {
+    "url": "https://github.com/debpalash/VoiceStudio",
+    "commit": "680012531ad5120bb7e0f68b2aeecea999c39f73"
+  },
+  {
+    "url": "https://github.com/sherlock-project/sherlock",
+    "commit": "c588d7c8b476df9f9c84912a05d1430fb8cdcdae"
+  },
+  {
+    "url": "https://github.com/paperclipai/paperclip",
+    "commit": "85ad16b47eab2caed981d4b662ab44b0255f83be"
+  },
+  {
+    "url": "https://github.com/pbakaus/impeccable",
+    "commit": "2fc5e1459efbbf06d92c7306517c286bf12490cf"
+  },
+  {
+    "url": "https://github.com/supabase/supabase",
+    "commit": "433d95afd046325948c2d6196ceb3f95577303af"
+  },
+  {
+    "url": "https://github.com/Panniantong/Agent-Reach",
+    "commit": "8d9ecc1f5521fe7d223cde782aaa4005695e2671"
+  },
+  {
+    "url": "https://github.com/d3/d3",
+    "commit": "7b634fc81455388e8ac4c2f7fbf79b20e16b94a8"
+  },
+  {
+    "url": "https://github.com/openai/whisper",
+    "commit": "86098128c0b4f24f0e2aa2994de830614b474227"
+  },
+  {
+    "url": "https://github.com/tauri-apps/tauri",
+    "commit": "c868ce68f78d1a471bc1810b0ac7d13e956099b3"
+  },
+  {
+    "url": "https://github.com/microsoft/TypeScript",
+    "commit": "e0fce98eec043375c0d9cf5906542e7922570237"
+  },
+  {
+    "url": "https://github.com/papers-we-love/papers-we-love",
+    "commit": "0b33c953aae0c90e6d15c4ed41b01e76358f3c28"
+  },
+  {
+    "url": "https://github.com/fatedier/frp",
+    "commit": "a2c975efb5e55102068065d61cfc17ffe34e939d"
+  }
+]

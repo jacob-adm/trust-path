@@ -58,8 +58,11 @@
   },
   "sonar-findbugs": {
     "agent_files_by_gate": {},
-    "by_category": {},
-    "records": 0,
+    "by_category": {
+      "cache": 12,
+      "head-code": 8
+    },
+    "records": 20,
     "refused": 0
   },
   "ultralytics": {

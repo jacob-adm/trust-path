@@ -416,6 +416,95 @@ class SourceTests(unittest.TestCase):
         self.assertEqual(recs, [])
 
 
+HEAD_VIA_OUTPUT = """
+    on: pull_request_target
+    permissions: {}
+    jobs:
+      build:
+        runs-on: ubuntu-latest
+        steps:
+%s
+          - uses: actions/checkout@v4
+            with:
+              ref: ${{ steps.pick.outputs.value }}
+          - run: ./mvnw verify
+            env:
+              TOKEN: ${{ secrets.PAT }}
+    """
+
+
+class HeadThroughStepOutputTests(unittest.TestCase):
+    """A checkout ref passed through the output of an earlier step, as in
+    spotbugs/sonar-findbugs before December 2024."""
+
+    def records(self, pick):
+        return analyse(w=HEAD_VIA_OUTPUT % textwrap.indent(textwrap.dedent(pick), " " * 10))
+
+    def test_action_given_the_pull_request_ref(self):
+        recs = self.records("""
+            - uses: haya14busa/action-cond@v1
+              id: pick
+              with:
+                cond: ${{ github.event_name == 'pull_request_target' }}
+                if_true: refs/pull/${{ github.event.pull_request.number }}/merge
+                if_false: ${{ github.ref }}
+            """)
+        self.assertEqual(recs, [("pull_request_target:checkout of pull request head",
+                                 ".github/workflows/w.yml", "build", "step 3", "secrets.PAT")])
+
+    def test_script_writing_the_head_sha_to_github_output(self):
+        recs = self.records("""
+            - id: pick
+              run: echo "value=${{ github.event.pull_request.head.sha }}" >> "$GITHUB_OUTPUT"
+            """)
+        self.assertEqual(sinks(recs), ["secrets.PAT"])
+
+    def test_script_writing_a_head_variable_from_env(self):
+        recs = self.records("""
+            - id: pick
+              env:
+                HEAD: ${{ github.event.pull_request.head.ref }}
+              run: |
+                echo "picking"
+                echo "value=$HEAD" >> $GITHUB_OUTPUT
+            """)
+        self.assertEqual(sinks(recs), ["secrets.PAT"])
+
+    def test_output_chained_through_two_steps(self):
+        recs = self.records("""
+            - uses: some/action@v1
+              id: first
+              with:
+                ref: ${{ github.event.pull_request.head.sha }}
+            - uses: other/action@v1
+              id: pick
+              with:
+                value: ${{ steps.first.outputs.result }}
+            """)
+        self.assertEqual(sinks(recs), ["secrets.PAT"])
+
+    def test_output_from_a_base_ref_is_not_head(self):
+        recs = self.records("""
+            - id: pick
+              env:
+                HEAD: ${{ github.event.pull_request.head.ref }}
+              run: |
+                echo "head is $HEAD"
+                echo "value=${{ github.base_ref }}" >> $GITHUB_OUTPUT
+            """)
+        self.assertEqual(recs, [])
+
+    def test_checkout_of_another_steps_output_with_no_head_value(self):
+        recs = self.records("""
+            - uses: haya14busa/action-cond@v1
+              id: pick
+              with:
+                if_true: main
+                if_false: ${{ github.ref }}
+            """)
+        self.assertEqual(recs, [])
+
+
 class SinkTests(unittest.TestCase):
     STEP = """
             on: issues

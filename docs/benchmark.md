@@ -23,6 +23,16 @@ before the May 2026 worm, whose path ran through the Actions cache (see
 before a documented incident, listed in [Incidents](#incidents).
 `--corpus FILE` runs another list in the same format.
 
+`benchmark/popular.json` is a separate, held-out list: the 100 most-starred non-archived
+repositories with workflows, pinned on 26 November 2026. It is not part of the default run and is
+used to check that a change to the rules does not add records on ordinary repositories. With
+0.6.1 it gives 179 records; following head refs through step outputs (0.7.0) adds none and
+removes none.
+
+```sh
+python3 benchmark/run.py --corpus benchmark/popular.json --expected popular-expected.json --update
+```
+
 The last entry, `fixtures/agents`, is a directory in this repository with eight workflows written
 for the benchmark. Each runs an AI agent action set up a different way: open to any user with no
 tool limits, open with tool limits, left at the action's default gate, in a read-only sandbox, an
@@ -35,14 +45,16 @@ never runs them. `benchmark/agents-only.json` runs just this entry and needs no 
 
 Each repository below is read at a commit whose workflow files hold the path an attacker used,
 as the project or a named investigator described it. trust-path was not changed for these
-entries; a miss is recorded as a miss. Measured with trust-path 0.6.1 on 26 November 2026.
+entries; a miss is recorded as a miss. Measured with trust-path 0.6.1 on 26 November 2026. A rule
+added later for a miss is checked on the held-out list above, and the row says from which version
+the path is reported.
 
 | Repository and commit | Incident and source | Workflow used | trust-path |
 | --- | --- | --- | --- |
 | [TanStack/router](https://github.com/TanStack/router) `b1c061a` | May 2026 worm ([postmortem](https://tanstack.com/blog/npm-supply-chain-compromise-postmortem)) | `bundle-size.yml` poisons the Actions cache that `release.yml` restores | Reported (`cache`) |
 | [nrwl/nx](https://github.com/nrwl/nx) `c916349` | August 2025, malicious Nx releases on npm ([postmortem](https://nx.dev/blog/s1ngularity-postmortem), [GHSL-2025-111](https://securitylab.github.com/advisories/GHSL-2025-111_nrwl_nx/)) | `pr-title-validation.yml`: `pull_request_target`, the pull request title and body pasted into `run:` | Reported (`expression`, `permissions:default`) |
 | [Kong/kubernetes-ingress-controller](https://github.com/Kong/kubernetes-ingress-controller) `792ce60` | December 2024, unauthorized 3.4.0 image ([Kong](https://konghq.com/blog/product-releases/december-2024-unauthorized-kong-ingress-controller-3-4-0-build)) | `checks.yaml`: `pull_request_target` on every branch, calling reusable workflows that check out the pull request head with secrets | Reported (`head-code`, through `workflow_call`, to the called workflows' secrets) |
-| [spotbugs/sonar-findbugs](https://github.com/spotbugs/sonar-findbugs) `e240bc1` | December 2024, maintainer token stolen, first step towards the tj-actions/changed-files compromise ([Unit 42](https://unit42.paloaltonetworks.com/github-actions-supply-chain-attack/)) | `sonarqube.yml`: `pull_request_target`, checks out `refs/pull/N/merge` and runs `./mvnw` with `PAT_TO_FORK` | **Missed.** The checkout `ref:` is the output of a third-party action (`haya14busa/action-cond`) whose input holds the pull request ref; a head checkout is recognised only when `ref:` names the pull request's ref or SHA itself. With the same ref written in `ref:` directly, the path to `PAT_TO_FORK` and `SONAR_TOKEN` is reported |
+| [spotbugs/sonar-findbugs](https://github.com/spotbugs/sonar-findbugs) `e240bc1` | December 2024, maintainer token stolen, first step towards the tj-actions/changed-files compromise ([Unit 42](https://unit42.paloaltonetworks.com/github-actions-supply-chain-attack/)) | `sonarqube.yml`: `pull_request_target`, checks out `refs/pull/N/merge` and runs `./mvnw` with `PAT_TO_FORK` | Missed by 0.6.1: the checkout `ref:` is the output of a third-party action (`haya14busa/action-cond`) whose input holds the pull request ref. Reported from 0.7.0, which follows a head ref through step outputs (`head-code`, to `PAT_TO_FORK` and `SONAR_TOKEN`) |
 | [ultralytics/ultralytics](https://github.com/ultralytics/ultralytics) `21162bd` | December 2024, malicious ultralytics 8.3.41 and 8.3.42 on PyPI ([Snyk](https://snyk.io/blog/ultralytics-ai-pwn-request-supply-chain-attack)) | `format.yml`: `pull_request_target` runs `ultralytics/actions@main`, whose own code expanded the branch name in a shell | **Missed.** The injection is in the action's code, which trust-path does not read (see [Limitations](limitations-and-security.md)) |
 
 Kong's `checks.yaml` first runs a permission check that lets `dependabot[bot]` and
