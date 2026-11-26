@@ -8,7 +8,7 @@ import tempfile
 import unittest
 
 from trust_path import __version__, audit
-from tests.test_cli import FIXTURES, ROOT, run
+from tests.test_cli import FIXTURES, ROOT, remove_tree, run
 
 TOP = {"format", "tool", "target", "exit", "findings", "errors"}
 FINDING = {"rule", "severity", "message", "evidence", "record"}
@@ -113,7 +113,7 @@ class FixtureTests(unittest.TestCase):
 class RefTests(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp(prefix="trust-path-audit-")
-        self.addCleanup(shutil.rmtree, self.dir)
+        self.addCleanup(remove_tree, self.dir)
         shutil.copytree(os.path.join(FIXTURES, "pr_title", ".github"),
                         os.path.join(self.dir, ".github"))
         env = dict(os.environ, GIT_AUTHOR_NAME="t", GIT_AUTHOR_EMAIL="t@example.invalid",
