@@ -1,8 +1,8 @@
 # Command
 
 ```
-trust-path [--json] DIR
-trust-path [--json] --ref REF [DIR]
+trust-path [--json | --audit-json] DIR
+trust-path [--json | --audit-json] --ref REF [DIR]
 ```
 
 `DIR` is a repository checkout. trust-path reads the workflow files in `DIR/.github/workflows`
@@ -39,6 +39,85 @@ once, so the same files always give the same output.
 
 `--json` writes the same records, in the same order, as a JSON array of objects with the keys
 `source`, `workflow`, `job`, `step`, `sink` and `detail`.
+
+## Audit result output
+
+`--audit-json` writes one JSON object in the audit result format (`audit-result/1`), for a CI
+job or an agent that runs several audit tools and reads their results the same way. Each
+finding is a `--json` record with what a reader needs to act on it: a rule id, a severity, one
+sentence that says what the path is, and the evidence to check it. For the `pr_title` test
+fixture (`trust-path --audit-json tests/fixtures/pr_title`):
+
+```json
+{
+  "errors": [],
+  "exit": 1,
+  "findings": [
+    {
+      "evidence": {
+        "path": ".github/workflows/greet.yml"
+      },
+      "message": "Untrusted input from pull_request_target, entering as github.event.pull_request.title, reaches the secret BOT_TOKEN in .github/workflows/greet.yml, job greet, step Post greeting",
+      "record": {
+        "detail": "-",
+        "job": "greet",
+        "sink": "secrets.BOT_TOKEN",
+        "source": "pull_request_target:github.event.pull_request.title",
+        "step": "Post greeting",
+        "workflow": ".github/workflows/greet.yml"
+      },
+      "rule": "trust-path.secret",
+      "severity": "high"
+    }
+  ],
+  "format": "audit-result/1",
+  "target": {
+    "kind": "repository",
+    "name": "pr_title"
+  },
+  "tool": {
+    "name": "trust-path",
+    "version": "0.8.0"
+  }
+}
+```
+
+| Key | Value |
+| --- | --- |
+| `format` | `audit-result/1`. |
+| `tool` | `trust-path` and its version. |
+| `target` | `kind` `repository`; `name`, the name of `DIR` (the current directory without one); `ref`, REF as given with `--ref`. |
+| `exit` | The exit status of the run, 0, 1 or 2. |
+| `findings` | One object per record, in the same order as the other outputs. |
+| `errors` | One object per error, with the `message` also written to standard error and, for a refused file or missing call, its `path`. |
+
+Each finding has:
+
+- `rule` and `severity`, fixed by the kind of sink, never by what the step does:
+
+  | Sink | `rule` | `severity` |
+  | --- | --- | --- |
+  | `secrets.NAME` | `trust-path.secret` | `high` |
+  | `secrets:inherit` | `trust-path.secrets-inherit` | `high` |
+  | `permissions.id-token:write` | `trust-path.oidc-token` | `high` |
+  | `permissions.SCOPE:write` (other scopes) | `trust-path.write-permission` | `high` |
+  | `agent:OWNER/REPO` | `trust-path.agent` | `high` |
+  | `environment:NAME` | `trust-path.environment` | `medium` |
+  | `permissions:default` | `trust-path.default-permissions` | `medium` |
+
+  An environment can require a reviewer before a job runs, and the default token permissions
+  depend on the repository's settings, so those two are `medium`.
+- `message`: where untrusted input comes from (a chain of runs reads `pull_request in
+  .github/workflows/ci.yml, then workflow_run`), where it enters, what it reaches, and the
+  workflow, job and step; then the agent detail in parentheses when there is one.
+- `evidence`: `path`, the workflow file; with `--ref`, `ref` as given and `commit`, the full id
+  of the commit it names. trust-path does not keep line numbers, so there is no `line`.
+- `record`: the `--json` record, unchanged.
+
+The object is written on every run, also on an error, so a reader always gets one object. With
+a refused file, the paths found in the other files are kept and the exit status is 2. On any
+other error, including a usage error such as `--json` with `--audit-json`, `findings` is empty,
+`errors` holds the message and the exit status is 2.
 
 ## Exit status
 

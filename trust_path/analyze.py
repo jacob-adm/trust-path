@@ -381,8 +381,8 @@ def _git(root, *args):
 
 
 def _git_reader(root, ref):
-    """name -> function returning the text of each file directly in
-    .github/workflows at ref, read from git without a checkout."""
+    """(commit id, name -> function returning the text of each file directly
+    in .github/workflows at ref), read from git without a checkout."""
     try:
         _git(root, "rev-parse", "--git-dir")
     except AnalysisError:
@@ -408,7 +408,7 @@ def _git_reader(root, ref):
             files[name] = None
         else:
             files[name] = lambda oid=oid: _git(root, "cat-file", "blob", oid).decode("utf-8")
-    return files
+    return commit.decode().strip(), files
 
 
 def _dir_reader(root):
@@ -454,8 +454,12 @@ class Repo(object):
     def __init__(self, root, ref=None):
         self.root = root
         self.workflows = {}
+        self.commit = None  # with ref, the full id of the commit it names
         refused = {}
-        files = _dir_reader(root) if ref is None else _git_reader(root, ref)
+        if ref is None:
+            files = _dir_reader(root)
+        else:
+            self.commit, files = _git_reader(root, ref)
         for name in sorted(files):
             if not name.endswith((".yml", ".yaml")):
                 continue

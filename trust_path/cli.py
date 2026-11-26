@@ -1,10 +1,10 @@
-"""Command line: trust-path [--json] [--ref REF] DIR"""
+"""Command line: trust-path [--json | --audit-json] [--ref REF] DIR"""
 
 import argparse
 import json
 import sys
 
-from . import __version__
+from . import __version__, audit
 from .analyze import AnalysisError, Repo
 
 FIELDS = ("source", "workflow", "job", "step", "sink", "detail")
@@ -15,8 +15,29 @@ def _clean(text):
     return " ".join(str(text).replace("\t", " ").split())
 
 
+class _Usage(Exception):
+    """A usage error, raised instead of exiting when --audit-json was asked for."""
+
+
+class _Parser(argparse.ArgumentParser):
+    audit = False
+
+    def error(self, message):
+        if self.audit:
+            self.print_usage(sys.stderr)
+            sys.stderr.write("%s: error: %s\n" % (self.prog, message))
+            raise _Usage(message)
+        argparse.ArgumentParser.error(self, message)
+
+
+def _write(doc):
+    json.dump(doc, sys.stdout, indent=2, sort_keys=True)
+    sys.stdout.write("\n")
+
+
 def main(argv=None):
-    parser = argparse.ArgumentParser(
+    argv = sys.argv[1:] if argv is None else argv
+    parser = _Parser(
         prog="trust-path",
         description="List the paths by which untrusted input (pull request titles, issue "
                     "bodies, comments, fork code) can reach a secret, an OIDC token, a write "
@@ -28,20 +49,37 @@ def main(argv=None):
     parser.add_argument("--ref", metavar="REF",
                         help="read the workflows from git at REF (a branch, tag or commit) "
                              "instead of from the files in DIR, without checking it out")
-    parser.add_argument("--json", action="store_true", help="write a JSON array of records")
+    form = parser.add_mutually_exclusive_group()
+    form.add_argument("--json", action="store_true", help="write a JSON array of records")
+    form.add_argument("--audit-json", action="store_true",
+                      help="write one audit result object (format audit-result/1): each record "
+                           "with a rule, a severity, a message and its evidence")
     parser.add_argument("--version", action="version", version="trust-path " + __version__)
-    args = parser.parse_args(argv)
-    if args.dir is None and args.ref is None:
-        parser.error("DIR is required without --ref")
+    # Known before parsing, so that a usage error can still be written as one object.
+    parser.audit = "--audit-json" in argv[:argv.index("--")] if "--" in argv else \
+        "--audit-json" in argv
+    try:
+        args = parser.parse_args(argv)
+        if args.dir is None and args.ref is None:
+            parser.error("DIR is required without --ref")
+    except _Usage as e:
+        _write(audit.result(".", None, [], [(str(e), None)]))
+        return 2
     try:
         repo = Repo(args.dir or ".", args.ref)
         records = repo.analyse()
     except AnalysisError as e:
         sys.stderr.write("trust-path: %s\n" % e)
+        if args.audit_json:
+            _write(audit.result(args.dir or ".", args.ref, [], [(str(e), None)]))
         return 2
     rows = [[_clean(v) for v in r] for r in records]
     rows = sorted(set(tuple(r) for r in rows))
-    if args.json:
+    if args.audit_json:
+        findings = [audit.finding(dict(zip(FIELDS, r)), args.ref, repo.commit) for r in rows]
+        errors = [("%s: %s" % (rel, _clean(reason)), rel) for rel, reason in repo.refused]
+        _write(audit.result(args.dir or ".", args.ref, findings, errors))
+    elif args.json:
         json.dump([dict(zip(FIELDS, r)) for r in rows], sys.stdout, indent=2, sort_keys=True)
         sys.stdout.write("\n")
     else:
