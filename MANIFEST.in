@@ -3,5 +3,6 @@
 graft tests
 graft benchmark
 graft .github/workflows
+include docs/commands.md
 prune tests/__pycache__
 prune benchmark/__pycache__
