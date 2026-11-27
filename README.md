@@ -126,6 +126,7 @@ key and can write text into issues that other workflows and agents read. Run `tr
 
 ## Documentation
 
+- [For coding agents](https://github.com/jacob-adm/trust-path/blob/main/docs/AGENTS.md): how an agent runs trust-path, reads `--audit-json` and cites the evidence.
 - [How trust-path finds paths](https://github.com/jacob-adm/trust-path/blob/main/docs/model.md): sources, entry points, sinks, the AI agent action
   list and the YAML subset.
 - [Command](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md): output fields, JSON, exit status and an example across workflows.
