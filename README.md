@@ -28,6 +28,10 @@ through `workflow_run` chains and local reusable workflows; it follows pull requ
 the Actions cache to the release and push jobs that restore it, the path of the TanStack worm;
 and it treats AI agent actions as sinks. See [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
 
+It is one of six audit tools that print the same result format with `--audit-json`.
+[suite-gate](https://github.com/jacob-adm/suite-gate) runs them together and gives one verdict per
+branch, as a command, a GitHub Action or an MCP server for coding agents.
+
 ## Example output
 
 A demo workflow that runs on `pull_request_target`, puts the pull request title into a shell
