@@ -33,11 +33,11 @@ and it treats AI agent actions as sinks. See [Using it with other tools](https:/
 A demo workflow that runs on `pull_request_target`, puts the pull request title into a shell
 step, and holds a secret and the `contents: write` permission:
 
-![trust-path listing two paths from the pull request title](https://raw.githubusercontent.com/jacob-adm/trust-path/main/docs/screenshots/trust-path.svg)
+<p align="center"><img src="https://raw.githubusercontent.com/jacob-adm/trust-path/main/docs/screenshots/trust-path.svg" alt="trust-path listing two paths from the pull request title"></p>
 
 The same branch with `--audit-json` (first lines of the result):
 
-![trust-path --audit-json output](https://raw.githubusercontent.com/jacob-adm/trust-path/main/docs/screenshots/trust-path-audit-json.svg)
+<p align="center"><img src="https://raw.githubusercontent.com/jacob-adm/trust-path/main/docs/screenshots/trust-path-audit-json.svg" alt="trust-path --audit-json output"></p>
 
 ## Requirements
 
