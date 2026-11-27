@@ -1,6 +1,6 @@
 # trust-path
 
-[![Test](https://github.com/jacob-adm/trust-path/actions/workflows/test.yml/badge.svg?branch=main)](https://github.com/jacob-adm/trust-path/actions/workflows/test.yml) [![PyPI](https://img.shields.io/pypi/v/trust-path?style=flat-square&color=0F6378&label=PyPI)](https://pypi.org/project/trust-path/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/jacob-adm/trust-path/main/pyproject.toml&style=flat-square&color=0F6378&label=python)](https://github.com/jacob-adm/trust-path/blob/main/pyproject.toml) [![Licence](https://img.shields.io/pypi/l/trust-path?style=flat-square&color=0F6378&label=licence)](https://github.com/jacob-adm/trust-path#license)
+[![PyPI](https://img.shields.io/pypi/v/trust-path?style=flat-square&color=0F6378&label=PyPI)](https://pypi.org/project/trust-path/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/jacob-adm/trust-path/main/pyproject.toml&style=flat-square&color=0F6378&label=python)](https://github.com/jacob-adm/trust-path/blob/main/pyproject.toml) [![Licence](https://img.shields.io/pypi/l/trust-path?style=flat-square&color=0F6378&label=licence)](https://github.com/jacob-adm/trust-path#license)
 
 trust-path lists the paths by which untrusted input can reach a secret or a publishing credential
 in a repository's GitHub Actions workflows, as far as the workflow files show them: repository
