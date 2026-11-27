@@ -10,9 +10,10 @@ a pull request title, an issue body, a comment, a fork's branch name or code. A 
 input can reach: a secret, an OIDC token (`id-token: write`), a write permission of the workflow
 token, a deployment environment, or an AI agent action holding a credential.
 
-These paths are used. In May 2026 a self-propagating worm in TanStack's workflows read an OIDC
-token from the GitHub Actions runner's memory and published 84 malicious versions of TanStack
-packages with it ([postmortem](https://tanstack.com/blog/npm-supply-chain-compromise-postmortem)).
+These paths are used. In May 2026 malware reached the release workflow of TanStack/router through
+GitHub Actions cache poisoning, read an OIDC token from the runner's memory and published 84
+malicious versions of 42 TanStack packages with it. The malware was written to republish itself
+to other packages its victims maintained ([postmortem](https://tanstack.com/blog/npm-supply-chain-compromise-postmortem)).
 Researchers showed that text in issue bodies, pull request descriptions and comments can make an AI
 agent action leak its secrets
 ([Microsoft](https://www.microsoft.com/en-us/security/blog/2026/06/05/securing-ci-cd-in-agentic-world-claude-code-github-action-case))
