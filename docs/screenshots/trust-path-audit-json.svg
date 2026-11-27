@@ -1,0 +1,36 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1145" height="581" viewBox="0 0 1145 581" role="img" aria-label="trust-path-audit-json">
+<title>trust-path-audit-json</title>
+<rect x="0.5" y="0.5" width="1144" height="580" rx="8" fill="#0d1117" stroke="#30363d"/>
+<path d="M0.5 34V8.5a8 8 0 0 1 8-8h1128a8 8 0 0 1 8 8V34z" fill="#161b22"/>
+<circle cx="18" cy="17" r="6" fill="#ff5f57"/>
+<circle cx="38" cy="17" r="6" fill="#febc2e"/>
+<circle cx="58" cy="17" r="6" fill="#28c840"/>
+<text x="572.5" y="21" text-anchor="middle" fill="#8b949e" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">trust-path-audit-json</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">
+<text x="18" y="62" fill="#7ee787">$ trust-path --ref feature/triage-bot --audit-json .</text>
+<text x="18" y="82" fill="#e6edf3">{</text>
+<text x="18" y="102" fill="#e6edf3">  "errors": [],</text>
+<text x="18" y="122" fill="#e6edf3">  "exit": 1,</text>
+<text x="18" y="142" fill="#e6edf3">  "findings": [</text>
+<text x="18" y="162" fill="#e6edf3">    {</text>
+<text x="18" y="182" fill="#e6edf3">      "evidence": {</text>
+<text x="18" y="202" fill="#e6edf3">        "commit": "19806b4258b6fd145892603e0f332d4fbd0c14fd",</text>
+<text x="18" y="222" fill="#e6edf3">        "path": ".github/workflows/triage.yml",</text>
+<text x="18" y="242" fill="#e6edf3">        "ref": "feature/triage-bot"</text>
+<text x="18" y="262" fill="#e6edf3">      },</text>
+<text x="18" y="282" fill="#e6edf3">      "message": "Untrusted input from pull_request_target, entering as github.event.pull_request.title, reaches write permission on</text>
+<text x="18" y="302" fill="#e6edf3"> contents in .github/workflows/triage.yml, job label, step step 1",</text>
+<text x="18" y="322" fill="#e6edf3">      "record": {</text>
+<text x="18" y="342" fill="#e6edf3">        "detail": "-",</text>
+<text x="18" y="362" fill="#e6edf3">        "job": "label",</text>
+<text x="18" y="382" fill="#e6edf3">        "sink": "permissions.contents:write",</text>
+<text x="18" y="402" fill="#e6edf3">        "source": "pull_request_target:github.event.pull_request.title",</text>
+<text x="18" y="422" fill="#e6edf3">        "step": "step 1",</text>
+<text x="18" y="442" fill="#e6edf3">        "workflow": ".github/workflows/triage.yml"</text>
+<text x="18" y="462" fill="#e6edf3">      },</text>
+<text x="18" y="482" fill="#e6edf3">      "rule": "trust-path.write-permission",</text>
+<text x="18" y="502" fill="#e6edf3">      "severity": "high"</text>
+<text x="18" y="522" fill="#e6edf3">    },</text>
+<text x="18" y="542" fill="#e6edf3">  … 30 more lines</text>
+<text x="18" y="562" fill="#8b949e"># exit status 1</text>
+</g></svg>

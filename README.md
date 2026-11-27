@@ -28,6 +28,17 @@ through `workflow_run` chains and local reusable workflows; it follows pull requ
 the Actions cache to the release and push jobs that restore it, the path of the TanStack worm;
 and it treats AI agent actions as sinks. See [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md).
 
+## Example output
+
+A demo workflow that runs on `pull_request_target`, puts the pull request title into a shell
+step, and holds a secret and the `contents: write` permission:
+
+![trust-path listing two paths from the pull request title](https://raw.githubusercontent.com/jacob-adm/trust-path/main/docs/screenshots/trust-path.svg)
+
+The same branch with `--audit-json` (first lines of the result):
+
+![trust-path --audit-json output](https://raw.githubusercontent.com/jacob-adm/trust-path/main/docs/screenshots/trust-path-audit-json.svg)
+
 ## Requirements
 
 - Python 3.9 or later, standard library only.
