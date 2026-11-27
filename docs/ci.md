@@ -28,7 +28,7 @@ jobs:
       - uses: actions/setup-python@6d4fd22b20465ccc0f7354476588e8df7c9ca0e0 # v7.1.0
         with:
           python-version: "3.13"
-      - run: python -m pip install trust-path==0.7.0
+      - run: python -m pip install trust-path==0.8.1
       - name: Report new paths
         env:
           BASE_REF: ${{ github.base_ref }}
@@ -54,7 +54,7 @@ repos:
       - id: trust-path
         name: trust-path new paths
         language: python
-        additional_dependencies: [trust-path==0.7.0]
+        additional_dependencies: [trust-path==0.8.1]
         files: ^\.github/workflows/
         pass_filenames: false
         entry: >-
@@ -78,7 +78,7 @@ Tested on 26 November 2026 in a test repository on GitHub, with trust-path 0.6.1
 
 The pre-commit hook gave the same results on the same files with pre-commit 4.7.0.
 
-Re-tested on 26 November 2026 with trust-path 0.7.0, the version pinned above, in a local git
+Re-tested on 26 November 2026 with trust-path 0.7.0 in a local git
 repository: the workflow's `Report new paths` script, run with `bash -e` against a bare `origin`
 with one branch per case, and the pre-commit hook on the same files with pre-commit 4.7.0. Both
 gave the same result for each case:
@@ -89,6 +89,19 @@ gave the same result for each case:
 | The sonar-findbugs shape: a `pull_request_target` workflow whose checkout `ref:` is the output of `haya14busa/action-cond` given `refs/pull/N/merge`, followed by a build with a secret | Fails with one path, ending in `secrets.PAT_TO_FORK` (trust-path 0.6.1 passes it) |
 | Adds a `pull_request` workflow with `contents: read` | Passes |
 | Changes no workflow | Passes (the hook is skipped) |
+
+Re-tested on 27 November 2026 with trust-path 0.8.1, the version pinned above, in a test
+repository on GitHub beside the git-surface and release-drift recipes. 0.8.1 adds `--audit-json`
+and leaves the analysis of 0.7.0 unchanged.
+
+| Pull request | Check |
+| --- | --- |
+| Adds a `pull_request_target` workflow that puts the pull request title in a step that has a secret | Fails with one path, ending in `secrets.BOT_TOKEN` |
+| Adds a `pull_request` workflow with `contents: read` | Passes |
+| Changes no workflow (four pull requests) | Passes |
+
+The pre-commit hook, with pre-commit 4.7.0, failed the first commit with the same path and
+passed the second.
 
 ## Notes
 
