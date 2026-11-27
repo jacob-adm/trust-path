@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1145" height="161" viewBox="0 0 1145 161" role="img" aria-label="trust-path">
+<title>trust-path</title>
+<rect x="0.5" y="0.5" width="1144" height="160" rx="8" fill="#0d1117" stroke="#30363d"/>
+<path d="M0.5 34V8.5a8 8 0 0 1 8-8h1128a8 8 0 0 1 8 8V34z" fill="#161b22"/>
+<circle cx="18" cy="17" r="6" fill="#ff5f57"/>
+<circle cx="38" cy="17" r="6" fill="#febc2e"/>
+<circle cx="58" cy="17" r="6" fill="#28c840"/>
+<text x="572.5" y="21" text-anchor="middle" fill="#8b949e" font-family="ui-sans-serif, system-ui, sans-serif" font-size="12">trust-path</text>
+<g font-family="ui-monospace, SFMono-Regular, Menlo, Consolas, monospace" font-size="14">
+<text x="18" y="62" fill="#7ee787">$ trust-path --ref feature/triage-bot .</text>
+<text x="18" y="82" fill="#e6edf3">pull_request_target:github.event.pull_request.title     .github/workflows/triage.yml    label   step 1  permissions.contents:write  </text>
+<text x="18" y="102" fill="#e6edf3">    -</text>
+<text x="18" y="122" fill="#e6edf3">pull_request_target:github.event.pull_request.title     .github/workflows/triage.yml    label   step 1  secrets.DEPLOY_TOKEN    -</text>
+<text x="18" y="142" fill="#8b949e"># exit status 1</text>
+</g></svg>
