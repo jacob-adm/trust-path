@@ -31,6 +31,12 @@ the other 19 repositories every record is guarded, data only or wrong. As an abs
 (fail on any record), trust-path would fail 23 of these 100 repositories, 19 of them on records an
 outsider cannot use as written.
 
+Two changes made after this measurement remove 12 of these records: a `download-artifact` step
+without `run-id` is no longer an upstream artifact (5 records), and a head checkout of only
+documents is no longer pull request code (7). The 12 are the 8 wrong records, 2 data-only records
+and 2 records of a job that also downloads the upstream run's build with a script, which
+trust-path does not read.
+
 Per-repository results are not published here: they describe live workflows of other projects.
 
 ## What this means for a required check
