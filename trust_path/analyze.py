@@ -275,6 +275,21 @@ def upstream_artifact(action, with_):
     return action in ARTIFACT_ACTIONS
 
 
+_DOCUMENT = re.compile(r"^[\w.-]+(/[\w.-]+)*\.(md|txt|rst)$", re.I)
+
+
+def documents_only(with_):
+    """Whether an actions/checkout step writes only documents to the workspace: a
+    sparse checkout with cone mode off whose every pattern names one .md, .txt or
+    .rst file. Cone mode (the default) also checks out every file at the top level."""
+    patterns = with_.get("sparse-checkout")
+    if str(with_.get("sparse-checkout-cone-mode")).lower() != "false" or \
+            not isinstance(patterns, str):
+        return False
+    lines = [l.strip() for l in patterns.splitlines() if l.strip()]
+    return bool(lines) and all(_DOCUMENT.match(l) and ".." not in l for l in lines)
+
+
 def head_checkouts(steps):
     """Indexes of the actions/checkout steps whose `ref:` or `repository:` selects
     the pull request's head, written out or carried by the output of an earlier
@@ -290,7 +305,8 @@ def head_checkouts(steps):
     for i, step in enumerate(steps):
         with_ = step.get("with") if isinstance(step.get("with"), dict) else {}
         if _action(step.get("uses")) == "actions/checkout":
-            if any(head(with_.get(k)) for k in ("ref", "repository")):
+            if any(head(with_.get(k)) for k in ("ref", "repository")) and \
+                    not documents_only(with_):
                 out.add(i)
             continue
         if not isinstance(step.get("id"), str):
