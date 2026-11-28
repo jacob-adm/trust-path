@@ -21,12 +21,12 @@ Each record was read by hand against its workflow file and put in one of five gr
 | Group | Records | Meaning |
 | --- | --- | --- |
 | Open | 22 | Outsider input reaches the credential as written. All 22 are AI agent actions that anyone can start from an issue or comment (`gate=anyone`); most limit the agent's tools or run it in a read-only sandbox, which trust-path reports in `detail`. |
-| Open, not verified | 17 | Pull request code runs, or can run, where it reaches the credential, but deciding needs more than the workflow files: cache keys set by the project's own files (15), or a `workflow_run` `branches:` filter as the only check, which a fork branch of the same name passes (2). |
+| Open, not verified | 15 | Pull request code runs, or can run, where it reaches the credential, but deciding needs more than the workflow files: cache keys set by the project's own files (13), or a `workflow_run` `branches:` filter as the only check, which a fork branch of the same name passes (2). |
 | Guarded | 82 | A check trust-path does not evaluate keeps outsiders out: the agent action's own write-access check (`gate=write-access`, 62), an `if:` on `author_association`, the head repository or the branch, or a job that runs only after a maintainer check. |
 | Data only | 52 | Outsider content reaches the job only as data: `toJSON` into a request body, text in a comment, an artifact read with `jq` and checked against the API, a pull request fetched as git objects and diffed but never run. |
-| Wrong | 6 | The path does not exist: an artifact downloaded without `run-id` comes from the same run, not the upstream one (3), and a cache writer whose only checkout of the pull request is a sparse checkout of `README.md` (3). |
+| Wrong | 8 | The path does not exist: an artifact downloaded without `run-id` comes from the same run, not the upstream one (3), and a cache writer whose only checkout of the pull request is a sparse checkout of `README.md` (5). |
 
-39 of the 179 records (22%) are open or open but not verified, in 4 of the 23 repositories. In
+37 of the 179 records (21%) are open or open but not verified, in 4 of the 23 repositories. In
 the other 19 repositories every record is guarded, data only or wrong. As an absolute check
 (fail on any record), trust-path would fail 23 of these 100 repositories, 19 of them on records an
 outsider cannot use as written.
