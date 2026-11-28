@@ -1,14 +1,39 @@
 # Command
 
 ```
-trust-path [--json | --audit-json] DIR
-trust-path [--json | --audit-json] --ref REF [DIR]
+trust-path [--forge FORGE] [--json | --audit-json] DIR
+trust-path [--forge FORGE] [--json | --audit-json] --ref REF [DIR]
 ```
 
 `DIR` is a repository checkout. trust-path reads the workflow files in `DIR/.github/workflows`
 and writes one record per path from untrusted input to a sink.
 
-With `--ref REF`, trust-path reads `.github/workflows` from git at `REF` (a branch, tag or commit)
+## Gitea and Forgejo
+
+`--forge gitea` or `--forge forgejo` applies that forge's rules instead of GitHub's. Both forges
+run workflows written in GitHub's syntax; what differs, and how trust-path follows it:
+
+| | GitHub (default) | Gitea | Forgejo |
+| --- | --- | --- | --- |
+| Workflow directory | `.github/workflows` | the first that exists of `.gitea/workflows`, `.github/workflows` | the first that exists of `.forgejo/workflows`, `.gitea/workflows`, `.github/workflows` |
+| Subdirectories | not read | read | read |
+| Context names read as `github` | | `gitea` | `forgejo`, `forge` |
+| `workflow_run` event | yes | yes | no: a workflow started only by it never runs |
+
+Only the first directory that exists is read, as the forge does: in a Gitea repository with both
+`.gitea/workflows` and `.github/workflows`, the files in `.github/workflows` never run and are not
+read. The automatic token is followed under each of its names, `secrets.GITHUB_TOKEN`,
+`secrets.GITEA_TOKEN` and `secrets.FORGEJO_TOKEN`. The context names `gitea`, `forgejo` and
+`forge` are read as `github` whatever the forge, since none of them means anything else.
+
+Sources: Gitea's [comparison with GitHub Actions](https://docs.gitea.com/usage/actions/comparison)
+and [FAQ](https://docs.gitea.com/usage/actions/faq); Forgejo's
+[Actions reference](https://forgejo.org/docs/latest/user/actions/reference/); and, for the
+directories and events, the `ListWorkflows` code of each forge. Not modelled: a Gitea server's
+`WORKFLOW_DIRS` setting (the default list is used), Gitea's different `permissions:` scopes
+(the GitHub scopes are read), and Gitea ignoring `environment:`.
+
+With `--ref REF`, trust-path reads the workflow directory from git at `REF` (a branch, tag or commit)
 in the repository at `DIR`, which defaults to the current directory. Nothing is checked out and
 the working tree is not read, so it can check a pull request's branch or an old release without
 switching to it:

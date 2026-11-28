@@ -5,7 +5,7 @@ import json
 import sys
 
 from . import __version__, audit
-from .analyze import AnalysisError, Repo
+from .analyze import FORGES, AnalysisError, Repo
 
 FIELDS = ("source", "workflow", "job", "step", "sink", "detail")
 
@@ -42,13 +42,19 @@ def main(argv=None):
         description="List the paths by which untrusted input (pull request titles, issue "
                     "bodies, comments, fork code) can reach a secret, an OIDC token, a write "
                     "permission, an environment or an AI agent action in the GitHub Actions "
-                    "workflows under DIR/.github/workflows. Exit status: 0 no path, 1 paths "
+                    "workflows under DIR/.github/workflows (with --forge, Gitea's or "
+                    "Forgejo's workflow directories). Exit status: 0 no path, 1 paths "
                     "found, 2 error.")
     parser.add_argument("dir", metavar="DIR", nargs="?",
                         help="a repository checkout (with --ref, a git repository; default .)")
     parser.add_argument("--ref", metavar="REF",
                         help="read the workflows from git at REF (a branch, tag or commit) "
                              "instead of from the files in DIR, without checking it out")
+    parser.add_argument("--forge", choices=FORGES, default="github",
+                        help="whose rules to apply: github (.github/workflows), gitea (the first "
+                             "of .gitea/workflows and .github/workflows) or forgejo (the first of "
+                             ".forgejo/workflows, .gitea/workflows and .github/workflows); "
+                             "default github")
     form = parser.add_mutually_exclusive_group()
     form.add_argument("--json", action="store_true", help="write a JSON array of records")
     form.add_argument("--audit-json", action="store_true",
@@ -66,7 +72,7 @@ def main(argv=None):
         _write(audit.result(".", None, [], [(str(e), None)]))
         return 2
     try:
-        repo = Repo(args.dir or ".", args.ref)
+        repo = Repo(args.dir or ".", args.ref, args.forge)
         records = repo.analyse()
     except AnalysisError as e:
         sys.stderr.write("trust-path: %s\n" % e)

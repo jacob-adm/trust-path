@@ -3,7 +3,9 @@
 [![PyPI](https://img.shields.io/pypi/v/trust-path?style=flat-square&color=0F6378&label=PyPI)](https://pypi.org/project/trust-path/) [![Python](https://img.shields.io/python/required-version-toml?tomlFilePath=https://raw.githubusercontent.com/jacob-adm/trust-path/main/pyproject.toml&style=flat-square&color=0F6378&label=python)](https://github.com/jacob-adm/trust-path/blob/main/pyproject.toml) [![Licence](https://img.shields.io/pypi/l/trust-path?style=flat-square&color=0F6378&label=licence)](https://github.com/jacob-adm/trust-path#license)
 
 trust-path lists the paths by which untrusted input can reach a secret or a publishing credential
-in a repository's GitHub Actions workflows, as far as the workflow files show them: repository
+in a repository's GitHub Actions workflows, or Gitea and Forgejo Actions workflows with `--forge`
+(see [Gitea and Forgejo](https://github.com/jacob-adm/trust-path/blob/main/docs/commands.md#gitea-and-forgejo)),
+as far as the workflow files show them: repository
 settings and the code of the actions a step uses are outside what it reads (see
 [Limitations](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md)). Untrusted input is text or code that anyone can supply:
 a pull request title, an issue body, a comment, a fork's branch name or code. A sink is what that

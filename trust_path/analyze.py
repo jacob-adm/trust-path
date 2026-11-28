@@ -147,7 +147,23 @@ WRITE_SCOPES = ("actions", "checks", "contents", "discussions", "id-token", "iss
 
 _EXPR = re.compile(r"\$\{\{(.*?)\}\}", re.S)
 _CONTEXT = re.compile(
-    r"(?<![\w.-])(github|inputs|secrets|env|steps|needs)((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
+    r"(?<![\w.-])(github|gitea|forgejo|forge|inputs|secrets|env|steps|needs)"
+    r"((?:\.[A-Za-z_*][\w*-]*|\[[^\]]*\])*)")
+# Gitea defines gitea as the github context, Forgejo forgejo and forge; neither name means
+# anything on GitHub, so they are read as github everywhere.
+_CONTEXT_ALIASES = {"gitea": "github", "forgejo": "github", "forge": "github"}
+
+# Where each forge reads workflows: the first directory that exists is used, and the others
+# are ignored. Gitea and Forgejo also read subdirectories; GitHub reads the directory only.
+# (Gitea's server setting WORKFLOW_DIRS can change its list; the default is shown.)
+FORGE_DIRS = {
+    "github": (".github/workflows",),
+    "gitea": (".gitea/workflows", ".github/workflows"),
+    "forgejo": (".forgejo/workflows", ".gitea/workflows", ".github/workflows"),
+}
+FORGES = tuple(sorted(FORGE_DIRS))
+# The automatic token under each name it is given in the secrets context.
+TOKEN_SECRETS = ("secrets.GITHUB_TOKEN", "secrets.GITEA_TOKEN", "secrets.FORGEJO_TOKEN")
 
 
 def _norm(name):
@@ -165,7 +181,7 @@ def contexts(value):
             expr = re.sub(r"\[\s*'([\w-]+)'\s*\]", r".\1", expr)
             expr = re.sub(r"'[^']*'", "''", expr)
             for m in _CONTEXT.finditer(expr):
-                found.add(_norm(m.group(1) + m.group(2)))
+                found.add(_norm(_CONTEXT_ALIASES.get(m.group(1), m.group(1)) + m.group(2)))
     return found
 
 
@@ -320,6 +336,17 @@ def agent_detail(action, with_, conditions=()):
     return "; ".join(parts)
 
 
+def _drop_trigger(wf, name):
+    """Remove one event from a workflow's on: (a string, a list or a mapping)."""
+    on = wf.get("on")
+    if on == name:
+        wf["on"] = {}
+    elif isinstance(on, list):
+        wf["on"] = [t for t in on if t != name]
+    elif isinstance(on, dict):
+        on.pop(name, None)
+
+
 def triggers_of(wf):
     on = wf.get("on")
     if isinstance(on, str):
@@ -380,9 +407,10 @@ def _git(root, *args):
     return p.stdout
 
 
-def _git_reader(root, ref):
-    """(commit id, name -> function returning the text of each file directly
-    in .github/workflows at ref), read from git without a checkout."""
+def _git_reader(root, ref, forge="github"):
+    """(commit id, path -> function returning the text of each workflow file
+    at ref), read from git without a checkout. The files are those of the
+    first of the forge's workflow directories that exists at ref."""
     try:
         _git(root, "rev-parse", "--git-dir")
     except AnalysisError:
@@ -393,36 +421,54 @@ def _git_reader(root, ref):
         commit = _git(root, "rev-parse", "--verify", "--quiet", ref + "^{commit}")
     except AnalysisError:
         raise AnalysisError("unknown ref %s" % ref)
-    listing = _git(root, "ls-tree", "-z", "--full-tree", commit.decode().strip(), "--",
-                   ".github/workflows/")
+    commit = commit.decode().strip()
     files = {}
-    for entry in listing.split(b"\0"):
-        if not entry:
-            continue
-        meta, path = entry.split(b"\t", 1)
-        mode, kind, oid = meta.decode().split(" ")
-        name = path.decode("utf-8", "replace").split("/")[-1]
-        if kind != "blob":
-            continue
-        if mode == "120000":
-            files[name] = None
-        else:
-            files[name] = lambda oid=oid: _git(root, "cat-file", "blob", oid).decode("utf-8")
-    return commit.decode().strip(), files
+    for wdir in FORGE_DIRS[forge]:
+        args = ["ls-tree", "-z", "--full-tree"] + (["-r"] if forge != "github" else [])
+        listing = _git(root, *(args + [commit, "--", wdir + "/"]))
+        if not listing and not _git(root, "ls-tree", "--full-tree", commit, "--", wdir):
+            continue  # no such directory: try the next one
+        for entry in listing.split(b"\0"):
+            if not entry:
+                continue
+            meta, path = entry.split(b"\t", 1)
+            mode, kind, oid = meta.decode().split(" ")
+            if kind != "blob":
+                continue
+            rel = path.decode("utf-8", "replace")
+            if mode == "120000":
+                files[rel] = None
+            else:
+                files[rel] = lambda oid=oid: _git(root, "cat-file", "blob", oid).decode("utf-8")
+        break
+    return commit, files
 
 
-def _dir_reader(root):
-    """name -> function returning the text of each file directly in
-    DIR/.github/workflows."""
+def _dir_reader(root, forge="github"):
+    """path -> function returning the text of each workflow file under DIR, in
+    the first of the forge's workflow directories that exists (a symbolic link
+    maps to None)."""
     if not os.path.isdir(root):
         raise AnalysisError("%s: not a directory" % root)
-    wdir = os.path.join(root, ".github", "workflows")
 
-    def read(name):
-        with open(os.path.join(wdir, name), encoding="utf-8") as f:
+    def read(rel):
+        with open(os.path.join(root, *rel.split("/")), encoding="utf-8") as f:
             return f.read()
-    names = os.listdir(wdir) if os.path.isdir(wdir) else []
-    return dict((name, lambda name=name: read(name)) for name in names)
+    for wdir in FORGE_DIRS[forge]:
+        full = os.path.join(root, *wdir.split("/"))
+        if not os.path.isdir(full):
+            continue
+        files = {}
+        for top, dirs, names in os.walk(full):
+            dirs[:] = sorted(d for d in dirs if not os.path.islink(os.path.join(top, d)))
+            for name in names:
+                rel = os.path.relpath(os.path.join(top, name), root).replace(os.sep, "/")
+                files[rel] = None if os.path.islink(os.path.join(top, name)) else \
+                    (lambda rel=rel: read(rel))
+            if forge == "github":
+                break  # GitHub reads the directory only
+        return files
+    return {}
 
 
 def _job_order(jobs):
@@ -451,24 +497,29 @@ class Repo(object):
     `refused` as sorted (file, reason) pairs and left out. A job that calls a
     missing local workflow is listed there too, but its file is still read."""
 
-    def __init__(self, root, ref=None):
+    def __init__(self, root, ref=None, forge="github"):
+        if forge not in FORGE_DIRS:
+            raise AnalysisError("unknown forge %s (one of %s)" % (forge, ", ".join(FORGES)))
         self.root = root
+        self.forge = forge
         self.workflows = {}
         self.commit = None  # with ref, the full id of the commit it names
         refused = {}
         if ref is None:
-            files = _dir_reader(root)
+            files = _dir_reader(root, forge)
         else:
-            self.commit, files = _git_reader(root, ref)
-        for name in sorted(files):
-            if not name.endswith((".yml", ".yaml")):
+            self.commit, files = _git_reader(root, ref, forge)
+        for rel in sorted(files):
+            if not rel.endswith((".yml", ".yaml")):
                 continue
-            rel = ".github/workflows/" + name
-            if files[name] is None:
+            if files[rel] is None:
                 refused[rel] = "a symbolic link, not read"
                 continue
             try:
-                self.workflows[rel] = _check(yamlsubset.load(files[name]()))
+                wf = _check(yamlsubset.load(files[rel]()))
+                if forge == "forgejo":
+                    _drop_trigger(wf, "workflow_run")  # Forgejo has no workflow_run event
+                self.workflows[rel] = wf
             except yamlsubset.YamlError as e:
                 refused[rel] = "line %d: %s" % (e.line, e.message)
             except AnalysisError as e:
@@ -488,7 +539,7 @@ class Repo(object):
                     target = uses[2:].split("@")[0]
                     if target not in self.workflows and target not in refused:
                         missing.append((rel, "job %r calls %s, which is not in %s" % (
-                            job_id, uses, ".github/workflows")))
+                            job_id, uses, rel.rsplit("/", 1)[0])))
         self.refused = sorted(list(refused.items()) + missing)
 
     def name_of(self, rel):
@@ -610,7 +661,7 @@ class Repo(object):
         def allowed(names):
             if ctx.secrets_allowed is None:
                 return names
-            return set(n for n in names if n == "secrets.GITHUB_TOKEN"
+            return set(n for n in names if n in TOKEN_SECRETS
                        or n[len("secrets."):] in ctx.secrets_allowed
                        or (n == "secrets.*" and ctx.secrets_allowed))
 
