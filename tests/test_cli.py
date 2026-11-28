@@ -124,6 +124,47 @@ class OutputTests(unittest.TestCase):
         self.assertEqual(len(lines), len(set(lines)))
 
 
+class BaselineTests(unittest.TestCase):
+    def setUp(self):
+        self.tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.tmp)
+        _, out, _ = run("--json", os.path.join(FIXTURES, "agent"))
+        self.records = json.loads(out)
+
+    def baseline(self, doc):
+        path = os.path.join(self.tmp, "baseline.json")
+        with open(path, "w") as f:
+            f.write(doc if isinstance(doc, str) else json.dumps(doc))
+        return path
+
+    def test_all_records_in_baseline_exit_zero(self):
+        path = self.baseline(self.records)
+        self.assertEqual(run("--baseline", path, os.path.join(FIXTURES, "agent")), (0, "", ""))
+        code, out, _ = run("--audit-json", "--baseline", path, os.path.join(FIXTURES, "agent"))
+        self.assertEqual((code, json.loads(out)["findings"]), (0, []))
+
+    def test_record_not_in_baseline_is_reported(self):
+        kept, rest = self.records[0], self.records[1:]
+        code, out, _ = run("--json", "--baseline", self.baseline(rest),
+                           os.path.join(FIXTURES, "agent"))
+        self.assertEqual((code, json.loads(out)), (1, [kept]))
+
+    def test_changed_field_is_reported_again(self):
+        changed = [dict(r, detail=r["detail"] + "x") for r in self.records]
+        code, out, _ = run("--json", "--baseline", self.baseline(changed),
+                           os.path.join(FIXTURES, "agent"))
+        self.assertEqual((code, json.loads(out)), (1, self.records))
+
+    def test_unreadable_baseline_is_an_error(self):
+        for doc in ("not json", '{"a": 1}', "[1]"):
+            code, out, err = run("--baseline", self.baseline(doc), os.path.join(FIXTURES, "agent"))
+            self.assertEqual((code, out), (2, ""), doc)
+            self.assertIn("--baseline", err)
+        code, _, err = run("--baseline", os.path.join(self.tmp, "missing.json"),
+                           os.path.join(FIXTURES, "agent"))
+        self.assertEqual(code, 2)
+
+
 class ErrorTests(unittest.TestCase):
     def test_unsupported_yaml_is_refused(self):
         code, out, err = run(os.path.join(FIXTURES, "tags"))

@@ -143,6 +143,8 @@ key and can write text into issues that other workflows and agents read. Run `tr
 - [Limitations and security](https://github.com/jacob-adm/trust-path/blob/main/docs/limitations-and-security.md): what trust-path does not see, read or do.
 - [Benchmark](https://github.com/jacob-adm/trust-path/blob/main/docs/benchmark.md): a repeatable run on pinned public workflows, with a
   per-file comparison against zizmor
+- [Records on popular repositories](https://github.com/jacob-adm/trust-path/blob/main/docs/noise.md): how many paths 100 popular
+  repositories have, how many an outsider can use as written, and keeping reviewed ones in a baseline.
 - [Using it with other tools](https://github.com/jacob-adm/trust-path/blob/main/docs/other-tools.md): a tested stack with git surface
   and git-overlap, and what zizmor and poutine cover and what trust-path adds.
 - [Contributing](https://github.com/jacob-adm/trust-path/blob/main/CONTRIBUTING.md): running the tests and contributing a change.

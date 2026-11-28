@@ -1,8 +1,8 @@
 # Command
 
 ```
-trust-path [--forge FORGE] [--json | --audit-json] DIR
-trust-path [--forge FORGE] [--json | --audit-json] --ref REF [DIR]
+trust-path [--forge FORGE] [--json | --audit-json] [--baseline FILE] DIR
+trust-path [--forge FORGE] [--json | --audit-json] [--baseline FILE] --ref REF [DIR]
 ```
 
 `DIR` is a repository checkout. trust-path reads the workflow files in `DIR/.github/workflows`
@@ -41,6 +41,12 @@ switching to it:
 ```sh
 trust-path --ref origin/main
 ```
+
+With `--baseline FILE`, trust-path leaves out the records listed in `FILE`, a JSON array as
+written by `--json`. A record is left out only when all six fields match. The exit status and
+every output form count only the records that are left. A `FILE` that cannot be read or is not
+an array of records is an error (exit status 2). See [Records on popular repositories](noise.md)
+for why and when to keep one.
 
 ## Output
 

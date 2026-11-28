@@ -35,6 +35,18 @@ def _write(doc):
     sys.stdout.write("\n")
 
 
+def _baseline(path):
+    """The records in a --baseline file, as tuples of the six cleaned fields."""
+    try:
+        with open(path) as f:
+            doc = json.load(f)
+        if not isinstance(doc, list) or not all(isinstance(r, dict) for r in doc):
+            raise ValueError("not a JSON array of records")
+        return set(tuple(_clean(r.get(k, "")) for k in FIELDS) for r in doc)
+    except (OSError, ValueError) as e:
+        raise AnalysisError("--baseline %s: %s" % (path, e))
+
+
 def main(argv=None):
     argv = sys.argv[1:] if argv is None else argv
     parser = _Parser(
@@ -60,6 +72,9 @@ def main(argv=None):
     form.add_argument("--audit-json", action="store_true",
                       help="write one audit result object (format audit-result/1): each record "
                            "with a rule, a severity, a message and its evidence")
+    parser.add_argument("--baseline", metavar="FILE",
+                        help="leave out the records listed in FILE, a JSON array written by "
+                             "--json; a record is left out only when all six fields match")
     parser.add_argument("--version", action="version", version="trust-path " + __version__)
     # Known before parsing, so that a usage error can still be written as one object.
     parser.audit = "--audit-json" in argv[:argv.index("--")] if "--" in argv else \
@@ -72,6 +87,7 @@ def main(argv=None):
         _write(audit.result(".", None, [], [(str(e), None)]))
         return 2
     try:
+        known = _baseline(args.baseline) if args.baseline else set()
         repo = Repo(args.dir or ".", args.ref, args.forge)
         records = repo.analyse()
     except AnalysisError as e:
@@ -80,7 +96,7 @@ def main(argv=None):
             _write(audit.result(args.dir or ".", args.ref, [], [(str(e), None)]))
         return 2
     rows = [[_clean(v) for v in r] for r in records]
-    rows = sorted(set(tuple(r) for r in rows))
+    rows = sorted(set(tuple(r) for r in rows) - known)
     if args.audit_json:
         findings = [audit.finding(dict(zip(FIELDS, r)), args.ref, repo.commit) for r in rows]
         errors = [("%s: %s" % (rel, _clean(reason)), rel) for rel, reason in repo.refused]
