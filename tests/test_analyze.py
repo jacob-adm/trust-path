@@ -613,6 +613,23 @@ class CrossWorkflowTests(unittest.TestCase):
         self.assertEqual([r[0] for r in recs], [
             "pull_request@.github/workflows/up.yml>workflow_run:artifact from upstream run"])
 
+    def test_artifact_of_the_same_run_is_not_upstream(self):
+        down = self.DOWNSTREAM.replace(
+            "                with:\n                  run-id: ${{ github.event.workflow_run.id }}\n", "")
+        self.assertNotIn("run-id", down)
+        recs = analyse(up="name: Build\non: pull_request\njobs: {}\n", down=down % "Build")
+        self.assertEqual(recs, [])
+
+    def test_other_download_action_is_upstream_without_run_id(self):
+        down = self.DOWNSTREAM.replace(
+            "actions/download-artifact@v4\n                with:\n"
+            "                  run-id: ${{ github.event.workflow_run.id }}",
+            "dawidd6/action-download-artifact@v6")
+        self.assertIn("dawidd6", down)
+        recs = analyse(up="name: Build\non: pull_request\njobs: {}\n", down=down % "Build")
+        self.assertEqual([r[0] for r in recs], [
+            "pull_request@.github/workflows/up.yml>workflow_run:artifact from upstream run"])
+
     def test_trusted_upstream(self):
         recs = analyse(up="name: Build\non: push\njobs: {}\n", down=self.DOWNSTREAM % "Build")
         self.assertEqual(recs, [])

@@ -266,6 +266,15 @@ def _action(uses):
 _STEP_OUTPUT = re.compile(r"\bsteps\.([A-Za-z_][\w-]*)\.outputs\.")
 
 
+def upstream_artifact(action, with_):
+    """Whether a step downloads an artifact of another run. actions/download-artifact
+    reads the current run's artifacts unless `run-id` is given; the other action
+    always reads another run."""
+    if action == "actions/download-artifact":
+        return "run-id" in with_
+    return action in ARTIFACT_ACTIONS
+
+
 def head_checkouts(steps):
     """Indexes of the actions/checkout steps whose `ref:` or `repository:` selects
     the pull request's head, written out or carried by the output of an earlier
@@ -729,7 +738,7 @@ class Repo(object):
                 entries.add((i, "checkout of pull request head"))
             if head and isinstance(step.get("run"), str) and HEAD_FETCH.search(step["run"]):
                 entries.add((i, "fetch of pull request head"))
-            if ctx.trigger == "workflow_run" and action in ARTIFACT_ACTIONS:
+            if ctx.trigger == "workflow_run" and upstream_artifact(action, with_):
                 entries.add((i, "artifact from upstream run"))
             if action in AGENT_ACTIONS:
                 entries.add((i, "event text read by agent"))
