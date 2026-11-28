@@ -803,6 +803,60 @@ class ErrorTests(unittest.TestCase):
         """
         self.assertEqual(sinks(analyse(call=call, bad="on: [\n")), ["permissions:default"])
 
+SPARSE = """
+    on: pull_request_target
+    jobs:
+      check:
+        runs-on: ubuntu-latest
+        steps:
+          - uses: actions/checkout@v4
+            with:
+              ref: ${{ github.event.pull_request.head.sha }}
+%s
+          - run: ./check
+            env:
+              KEY: ${{ secrets.KEY }}
+"""
+
+
+class SparseCheckoutTests(unittest.TestCase):
+    """A head checkout that writes only documents to the workspace runs no pull
+    request code; any other sparse checkout still does."""
+
+    def records(self, with_):
+        return analyse(w=SPARSE % textwrap.indent(textwrap.dedent(with_).strip("\n"), " " * 14))
+
+    def test_documents_only_is_not_an_entry(self):
+        self.assertEqual(self.records("""
+            sparse-checkout: README.md
+            sparse-checkout-cone-mode: false
+            """), [])
+        self.assertEqual(self.records("""
+            sparse-checkout: |
+              README.md
+              docs/CHANGES.txt
+            sparse-checkout-cone-mode: false
+            """), [])
+
+    def test_other_sparse_checkouts_are_entries(self):
+        for with_ in ("sparse-checkout: README.md",  # cone mode: top-level files too
+                      "sparse-checkout: README.md\nsparse-checkout-cone-mode: true",
+                      "sparse-checkout: |\n  README.md\n  check\nsparse-checkout-cone-mode: false",
+                      "sparse-checkout: docs\nsparse-checkout-cone-mode: false",
+                      "sparse-checkout: '*.md'\nsparse-checkout-cone-mode: false",
+                      "sparse-checkout: ../x.md\nsparse-checkout-cone-mode: false"):
+            self.assertEqual(sorted(set(r[0] for r in self.records(with_))),
+                             ["pull_request_target:checkout of pull request head"], with_)
+
+    def test_documents_only_writer_has_no_cache_path(self):
+        writer = (CACHE_WRITER % "org/config/.github/setup@main").replace(
+            "/merge\n", "/merge\n              sparse-checkout: README.md\n"
+            "              sparse-checkout-cone-mode: false\n")
+        self.assertIn("sparse-checkout", writer)
+        recs = analyse(bench=writer, release=CACHE_READER % ("push", "org/config/.github/setup@main"))
+        self.assertEqual([r for r in recs if ">cache:" in r[0]], [])
+
+
 if __name__ == "__main__":
     unittest.main()
 
